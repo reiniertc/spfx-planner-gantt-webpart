@@ -9,6 +9,7 @@ export interface IPlannerGanttProps {
   showBucketsAsPhases: boolean;
   colorBarsByStatus: boolean;
   sortTasksByStartDate: boolean;
+  sortBucketsByStartDate: boolean;
   showTaskNameOnBar: boolean;
   showCurrentDateLine: boolean;
   showStartDateColumn: boolean;

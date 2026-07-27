@@ -29,6 +29,7 @@ export interface IPlannerGanttWebPartProps {
   showBucketsAsPhases: boolean;
   colorBarsByStatus: boolean;
   sortTasksByStartDate: boolean;
+  sortBucketsByStartDate: boolean;
   showTaskNameOnBar: boolean;
   showCurrentDateLine: boolean;
   showStartDateColumn: boolean;
@@ -72,6 +73,7 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         showBucketsAsPhases: this.properties.showBucketsAsPhases !== false,
         colorBarsByStatus: this.properties.colorBarsByStatus !== false,
         sortTasksByStartDate: !!this.properties.sortTasksByStartDate,
+        sortBucketsByStartDate: !!this.properties.sortBucketsByStartDate,
         showTaskNameOnBar: this.properties.showTaskNameOnBar !== false,
         showCurrentDateLine: this.properties.showCurrentDateLine !== false,
         showStartDateColumn: this.properties.showStartDateColumn !== false,
@@ -249,6 +251,12 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showBucketsAsPhases', {
             label: strings.ShowBucketsAsPhasesFieldLabel,
             checked: this.properties.showBucketsAsPhases !== false
+          }),
+          PropertyPaneToggle('sortBucketsByStartDate', {
+            label: strings.SortBucketsByStartDateFieldLabel,
+            onText: strings.SortBucketsByStartDateOnText,
+            offText: strings.SortBucketsByStartDateOffText,
+            checked: !!this.properties.sortBucketsByStartDate
           }),
           PropertyPaneToggle('sortTasksByStartDate', {
             label: strings.SortTasksByStartDateFieldLabel,

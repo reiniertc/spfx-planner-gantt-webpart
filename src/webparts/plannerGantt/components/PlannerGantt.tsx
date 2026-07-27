@@ -118,8 +118,8 @@ function handlePrintExport(chartElement: HTMLElement | undefined, title: string)
 const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) => {
   const {
     planId, viewMode, showCompletedTasks, showBucketsAsPhases, colorBarsByStatus, sortTasksByStartDate,
-    showTaskNameOnBar, showCurrentDateLine, showStartDateColumn, showEndDateColumn, showAssigneeColumn,
-    bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey
+    sortBucketsByStartDate, showTaskNameOnBar, showCurrentDateLine, showStartDateColumn, showEndDateColumn,
+    showAssigneeColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
@@ -179,6 +179,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
         includeCompleted: showCompletedTasks,
         showBucketsAsPhases,
         sortByStartDate: sortTasksByStartDate,
+        sortBucketsByStartDate,
         bucketFilter
       })
       .then(result => {
@@ -198,7 +199,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
       isCancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planId, showCompletedTasks, showBucketsAsPhases, sortTasksByStartDate, bucketFilterKey, plannerService]);
+  }, [planId, showCompletedTasks, showBucketsAsPhases, sortTasksByStartDate, sortBucketsByStartDate, bucketFilterKey, plannerService]);
 
   const columns = React.useMemo(() => ({
     showStartDate: showStartDateColumn,

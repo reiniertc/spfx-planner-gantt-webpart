@@ -16,6 +16,8 @@ export interface IGanttRowOptions {
   bucketFilter?: IBucketFilter;
   /** When true, tasks within each bucket are ordered by start date instead of their Planner (manual) order. */
   sortByStartDate: boolean;
+  /** When true, buckets are ordered by the earliest start date among their tasks instead of their Planner board order. */
+  sortBucketsByStartDate: boolean;
 }
 
 /**
@@ -117,20 +119,31 @@ export class PlannerService {
 
     const rows: IGanttRow[] = [];
 
-    buckets
-      .filter(bucket => tasks.some(task => task.bucketId === bucket.id))
-      .forEach(bucket => {
-        const bucketTasks: IPlannerTask[] = tasks
-          .filter(task => task.bucketId === bucket.id)
-          .sort((a, b) => this.compareTasks(a, b, options.sortByStartDate));
-        const taskRows: IGanttRow[] = bucketTasks.map(task =>
-          this.toGanttRow(task, bucket.id, options.showBucketsAsPhases, assigneeNameById));
+    const bucketMinStartById: Record<string, number> = {};
+    tasks.forEach(task => {
+      const start: number = this.getEffectiveStart(task).getTime();
+      if (bucketMinStartById[task.bucketId] === undefined || start < bucketMinStartById[task.bucketId]) {
+        bucketMinStartById[task.bucketId] = start;
+      }
+    });
 
-        if (options.showBucketsAsPhases) {
-          rows.push(this.toBucketProjectRow(bucket.id, bucket.name, taskRows));
-        }
-        rows.push(...taskRows);
-      });
+    const orderedBuckets: IPlannerBucket[] = buckets.filter(bucket => tasks.some(task => task.bucketId === bucket.id));
+    if (options.sortBucketsByStartDate) {
+      orderedBuckets.sort((a, b) => bucketMinStartById[a.id] - bucketMinStartById[b.id]);
+    }
+
+    orderedBuckets.forEach(bucket => {
+      const bucketTasks: IPlannerTask[] = tasks
+        .filter(task => task.bucketId === bucket.id)
+        .sort((a, b) => this.compareTasks(a, b, options.sortByStartDate));
+      const taskRows: IGanttRow[] = bucketTasks.map(task =>
+        this.toGanttRow(task, bucket.id, options.showBucketsAsPhases, assigneeNameById));
+
+      if (options.showBucketsAsPhases) {
+        rows.push(this.toBucketProjectRow(bucket.id, bucket.name, taskRows));
+      }
+      rows.push(...taskRows);
+    });
 
     // Tasks whose bucket no longer resolves (rare, but Graph doesn't guarantee referential integrity on read).
     const orphanTasks: IPlannerTask[] = tasks

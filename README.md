@@ -32,6 +32,10 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
 - **Bucket filter.** A checkbox per bucket in the property pane controls
   which buckets are shown at all, so a bucket like "Backlog" can be hidden
   from the chart entirely (its tasks are excluded, not just the phase bar).
+- **Bucket order (toggle).** "Planner board order" (default) keeps buckets
+  in the same left-to-right order as the Planner board itself; "By earliest
+  start date" instead orders buckets by the earliest start date among their
+  own tasks.
 - **Sort tasks by start date (toggle).** Off by default, which keeps each
   bucket's tasks in Planner's own (manual/drag-and-drop) order. On sorts
   each bucket's tasks by start date instead.
@@ -118,9 +122,9 @@ gulp serve
 2. In the property pane, pick a **Plan** from the dropdown (it lists every
    plan from every Microsoft 365 group you belong to).
 3. Optionally adjust, under **Display**: **Zoom level**, **Show completed
-   tasks**, **Show buckets as phases**, **Sort tasks by start date**,
-   **Color bars by status**, **Show task name on bars**, and **Highlight
-   today's date**.
+   tasks**, **Show buckets as phases**, **Bucket order** (board order vs.
+   by earliest start date), **Sort tasks by start date**, **Color bars by
+   status**, **Show task name on bars**, and **Highlight today's date**.
 4. Under **Columns**, toggle the **Start date**, **Due date** and **Assigned
    to** columns next to the chart.
 5. Under **Buckets to show**, uncheck a bucket (e.g. Backlog) to hide it and
