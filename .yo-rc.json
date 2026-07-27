@@ -1,0 +1,23 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "spfx-planner-gantt-webpart",
+    "solutionShortDescription": "SPFx web part that renders Microsoft Planner tasks as a Gantt chart",
+    "environment": "spo",
+    "packageManager": "npm",
+    "skipFeatureDeployment": true,
+    "useGulp": true,
+    "componentType": "webpart",
+    "template": "react",
+    "componentName": "PlannerGantt",
+    "componentDescription": "Displays Microsoft Planner tasks from a selected plan as a Gantt chart",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.22.2",
+    "sdksVersions": {},
+    "version": "1.23.2",
+    "libraryName": "spfx-planner-gantt-webpart",
+    "libraryId": "7cbf1a16-92fe-46db-8a8f-fe8315c0133e",
+    "isDomainIsolated": false
+  }
+}

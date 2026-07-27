@@ -1,0 +1,110 @@
+# spfx-planner-gantt-webpart
+
+A SharePoint Framework (SPFx) web part that reads a Microsoft Planner plan
+through Microsoft Graph and renders its tasks as an interactive Gantt chart.
+The site owner picks the plan once in the web part's property pane; every
+visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
+(no re-configuration per visitor).
+
+## Used SharePoint Framework Version
+
+![version](https://img.shields.io/badge/version-1.23.2-green.svg)
+
+## Applies to
+
+- [SharePoint Framework](https://aka.ms/spfx)
+- [Microsoft 365 tenant](https://docs.microsoft.com/sharepoint/dev/spfx/set-up-your-developer-tenant) with Microsoft Planner enabled
+- [Microsoft Graph](https://learn.microsoft.com/graph/use-the-api) (delegated permissions)
+
+## Features
+
+- **Plan picker in the property pane.** The dropdown is populated live from
+  Microsoft Graph: it walks the Microsoft 365 groups the signed-in user
+  belongs to and lists every Planner plan owned by those groups (Graph has
+  no single "list all my plans" endpoint, so this is the standard way to
+  discover them).
+- **Gantt chart rendering** via [`gantt-task-react`](https://github.com/MaTeMaTuK/gantt-task-react),
+  grouped by Planner bucket (rendered as collapsible project rows).
+- Tasks with a due date but no start date fall back to their creation date;
+  tasks with no due date at all are rendered as milestones instead of bars.
+- Zoom level (Day / Week / Month) and a "show completed tasks" toggle,
+  configurable per web part instance from the property pane.
+- Read-only by design: Planner remains the system of record. The chart does
+  not write back to Planner.
+
+## Prerequisites
+
+This web part calls Microsoft Graph on behalf of the signed-in user, so the
+following Graph **delegated** permissions must be approved once per tenant:
+
+| Permission        | Why it's needed                                              |
+| ------------------ | ------------------------------------------------------------- |
+| `Group.Read.All`   | Enumerate the Microsoft 365 groups the user belongs to, to find their Planner plans |
+| `Tasks.Read`       | Read plan buckets and tasks from Planner                     |
+
+These are declared in [`config/package-solution.json`](./config/package-solution.json)
+under `webApiPermissionRequests`. After deploying the `.sppkg`:
+
+1. Go to the **SharePoint Admin Center** → **Advanced** → **API access**.
+2. Approve the two pending Microsoft Graph requests for this solution.
+3. Users can only see plans/tasks they already have access to in Planner —
+   this web part does not elevate anyone's permissions.
+
+## Build and deploy
+
+```bash
+npm install
+gulp bundle --ship
+gulp package-solution --ship
+```
+
+This produces `sharepoint/solution/spfx-planner-gantt-webpart.sppkg`. Upload
+it to your tenant's [App Catalog](https://learn.microsoft.com/sharepoint/use-app-catalog),
+approve the API permissions as described above, then add the **Planner
+Gantt** web part to any modern page.
+
+For local development against your own tenant:
+
+```bash
+npm install
+gulp serve
+```
+
+## Using the web part
+
+1. Add the **Planner Gantt** web part to a page and edit it.
+2. In the property pane, pick a **Plan** from the dropdown (it lists every
+   plan from every Microsoft 365 group you belong to).
+3. Optionally adjust the **Zoom level** and **Show completed tasks** toggle.
+4. Save the page — all visitors now see that plan's Gantt chart, scoped to
+   whatever Planner tasks they're individually allowed to see.
+
+## Solution architecture
+
+- `src/webparts/plannerGantt/PlannerGanttWebPart.ts` — web part shell and
+  property pane (async plan picker via `MSGraphClientV3`).
+- `src/webparts/plannerGantt/services/PlannerService.ts` — all Graph calls
+  and the mapping from Planner tasks/buckets to Gantt rows.
+- `src/webparts/plannerGantt/components/PlannerGantt.tsx` — React component
+  that fetches the selected plan's tasks and renders `gantt-task-react`.
+- `src/webparts/plannerGantt/models/IPlannerModels.ts` — shared TypeScript
+  interfaces for plans, buckets, tasks and Gantt rows.
+
+## Known limitations
+
+- Planner tasks have no notion of dependencies between tasks, so the chart
+  never draws dependency arrows.
+- A plan with many buckets/tasks means many Graph round trips on first load
+  (one per group to discover plans); this is a Graph API constraint, not a
+  caching layer this web part currently implements.
+
+## Disclaimer
+
+**THIS CODE IS PROVIDED _AS IS_ WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
+
+## References
+
+- [Getting started with SharePoint Framework](https://docs.microsoft.com/sharepoint/dev/spfx/set-up-your-developer-tenant)
+- [Use Microsoft Graph in your solution](https://docs.microsoft.com/sharepoint/dev/spfx/web-parts/get-started/using-microsoft-graph-apis)
+- [Planner Graph API overview](https://learn.microsoft.com/graph/api/resources/planner-overview)
+- [Publish SharePoint Framework applications to the Marketplace](https://docs.microsoft.com/sharepoint/dev/spfx/publish-to-marketplace-overview)

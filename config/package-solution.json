@@ -1,0 +1,50 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "spfx-planner-gantt-webpart-client-side-solution",
+    "id": "7cbf1a16-92fe-46db-8a8f-fe8315c0133e",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.23.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "SPFx web part that renders Microsoft Planner tasks as a Gantt chart"
+      },
+      "longDescription": {
+        "default": "SPFx web part that renders Microsoft Planner tasks as a Gantt chart"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "spfx-planner-gantt-webpart Feature",
+        "description": "The feature that activates elements of the spfx-planner-gantt-webpart solution.",
+        "id": "b7597d38-1953-4d68-add7-0d2c67912367",
+        "version": "1.0.0.0"
+      }
+    ],
+    "webApiPermissionRequests": [
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Group.Read.All"
+      },
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Tasks.Read"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/spfx-planner-gantt-webpart.sppkg"
+  }
+}
