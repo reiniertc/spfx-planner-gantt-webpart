@@ -129,7 +129,10 @@ export class PlannerService {
 
     const orderedBuckets: IPlannerBucket[] = buckets.filter(bucket => tasks.some(task => task.bucketId === bucket.id));
     if (options.sortBucketsByStartDate) {
-      orderedBuckets.sort((a, b) => bucketMinStartById[a.id] - bucketMinStartById[b.id]);
+      // gantt-task-react renders project/phase rows in the reverse of the
+      // array order they're supplied in, so the earliest bucket has to be
+      // last here to end up first (at the top) on screen.
+      orderedBuckets.sort((a, b) => bucketMinStartById[b.id] - bucketMinStartById[a.id]);
     }
 
     orderedBuckets.forEach(bucket => {
