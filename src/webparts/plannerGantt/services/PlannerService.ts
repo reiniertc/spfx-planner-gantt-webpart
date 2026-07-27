@@ -3,10 +3,18 @@ import {
   IPlannerPlanOption,
   IPlannerBucket,
   IPlannerTask,
-  IGanttRow
+  IGanttRow,
+  IBucketFilter
 } from '../models/IPlannerModels';
 
 const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
+
+export interface IGanttRowOptions {
+  includeCompleted: boolean;
+  showBucketsAsPhases: boolean;
+  /** Bucket id -> whether to include it. A bucket missing from the map is included by default. */
+  bucketFilter?: IBucketFilter;
+}
 
 /**
  * Wraps the Microsoft Graph calls needed to turn a Planner plan into rows
@@ -55,27 +63,36 @@ export class PlannerService {
       .sort((a, b) => a.planTitle.localeCompare(b.planTitle));
   }
 
-  public async getGanttRows(planId: string, includeCompleted: boolean): Promise<IGanttRow[]> {
+  public async getBuckets(planId: string): Promise<IPlannerBucket[]> {
+    const client: MSGraphClientV3 = await this.graphClientFactory();
+    const bucketsResponse = await client.api(`/planner/plans/${planId}/buckets`).select('id,name,orderHint').get();
+
+    return (bucketsResponse.value || [])
+      .sort((a: IPlannerBucket, b: IPlannerBucket) => a.orderHint.localeCompare(b.orderHint));
+  }
+
+  public async getGanttRows(planId: string, options: IGanttRowOptions): Promise<IGanttRow[]> {
     const client: MSGraphClientV3 = await this.graphClientFactory();
 
-    const [bucketsResponse, tasksResponse] = await Promise.all([
-      client.api(`/planner/plans/${planId}/buckets`).select('id,name,orderHint').get(),
+    const [buckets, tasksResponse] = await Promise.all([
+      this.getBuckets(planId),
       client
         .api(`/planner/plans/${planId}/tasks`)
         .select('id,title,bucketId,percentComplete,priority,startDateTime,dueDateTime,createdDateTime,completedDateTime,assignments')
         .get()
     ]);
 
-    const buckets: IPlannerBucket[] = (bucketsResponse.value || [])
-      .sort((a: IPlannerBucket, b: IPlannerBucket) => a.orderHint.localeCompare(b.orderHint));
-
     const bucketNameById: Record<string, string> = {};
     buckets.forEach(bucket => {
       bucketNameById[bucket.id] = bucket.name;
     });
 
+    const isBucketVisible = (bucketId: string): boolean =>
+      !options.bucketFilter || options.bucketFilter[bucketId] !== false;
+
     const tasks: IPlannerTask[] = (tasksResponse.value || [])
-      .filter((task: { completedDateTime?: string }) => includeCompleted || !task.completedDateTime)
+      .filter((task: { completedDateTime?: string }) => options.includeCompleted || !task.completedDateTime)
+      .filter((task: { bucketId: string }) => isBucketVisible(task.bucketId))
       .map((task: {
         id: string; title: string; bucketId: string; percentComplete: number; priority: number;
         startDateTime?: string; dueDateTime?: string; createdDateTime: string; completedDateTime?: string;
@@ -99,26 +116,31 @@ export class PlannerService {
       .filter(bucket => tasks.some(task => task.bucketId === bucket.id))
       .forEach(bucket => {
         const bucketTasks: IPlannerTask[] = tasks.filter(task => task.bucketId === bucket.id);
-        const taskRows: IGanttRow[] = bucketTasks.map(task => this.toGanttRow(task, bucket.id));
+        const taskRows: IGanttRow[] = bucketTasks.map(task => this.toGanttRow(task, bucket.id, options.showBucketsAsPhases));
 
-        rows.push(this.toBucketProjectRow(bucket.id, bucket.name, taskRows));
+        if (options.showBucketsAsPhases) {
+          rows.push(this.toBucketProjectRow(bucket.id, bucket.name, taskRows));
+        }
         rows.push(...taskRows);
       });
 
     // Tasks whose bucket no longer resolves (rare, but Graph doesn't guarantee referential integrity on read).
     const orphanTasks: IPlannerTask[] = tasks.filter(task => !bucketNameById[task.bucketId]);
     if (orphanTasks.length > 0) {
-      const orphanRows: IGanttRow[] = orphanTasks.map(task => this.toGanttRow(task, 'unbucketed'));
-      rows.push(this.toBucketProjectRow('unbucketed', 'Other tasks', orphanRows));
+      const orphanRows: IGanttRow[] = orphanTasks.map(task => this.toGanttRow(task, 'unbucketed', options.showBucketsAsPhases));
+      if (options.showBucketsAsPhases) {
+        rows.push(this.toBucketProjectRow('unbucketed', 'Other tasks', orphanRows));
+      }
       rows.push(...orphanRows);
     }
 
     return rows;
   }
 
-  private toGanttRow(task: IPlannerTask, projectId: string): IGanttRow {
+  private toGanttRow(task: IPlannerTask, bucketId: string, showBucketsAsPhases: boolean): IGanttRow {
     const created: Date = new Date(task.createdDateTime);
     const start: Date = task.startDateTime ? new Date(task.startDateTime) : created;
+    const project: string | undefined = showBucketsAsPhases ? bucketId : undefined;
 
     // A Planner task with no due date has nothing to draw a bar between,
     // so it's rendered as a milestone at its start date instead.
@@ -130,7 +152,7 @@ export class PlannerService {
         end: start,
         progress: task.percentComplete || 0,
         type: 'milestone',
-        project: projectId,
+        project,
         bucketName: ''
       };
     }
@@ -147,7 +169,7 @@ export class PlannerService {
       end,
       progress: task.percentComplete || 0,
       type: 'task',
-      project: projectId,
+      project,
       bucketName: ''
     };
   }

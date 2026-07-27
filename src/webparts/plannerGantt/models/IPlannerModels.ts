@@ -17,6 +17,9 @@ export interface IPlannerBucket {
   orderHint: string;
 }
 
+/** Bucket id -> whether it should be shown. A bucket missing from the map is shown by default. */
+export type IBucketFilter = Record<string, boolean>;
+
 export interface IPlannerTask {
   id: string;
   title: string;

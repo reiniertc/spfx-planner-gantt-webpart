@@ -23,8 +23,14 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   belongs to and lists every Planner plan owned by those groups (Graph has
   no single "list all my plans" endpoint, so this is the standard way to
   discover them).
-- **Gantt chart rendering** via [`gantt-task-react`](https://github.com/MaTeMaTuK/gantt-task-react),
-  grouped by Planner bucket (rendered as collapsible project rows).
+- **Gantt chart rendering** via [`gantt-task-react`](https://github.com/MaTeMaTuK/gantt-task-react).
+- **Buckets as phases (toggle).** When on (default), each Planner bucket is
+  shown as a phase bar spanning from the earliest start date to the latest
+  end date of its tasks, labeled with the bucket's name. Turn it off to see
+  a flat task list without the phase bars.
+- **Bucket filter.** A checkbox per bucket in the property pane controls
+  which buckets are shown at all, so a bucket like "Backlog" can be hidden
+  from the chart entirely (its tasks are excluded, not just the phase bar).
 - Tasks with a due date but no start date fall back to their creation date;
   tasks with no due date at all are rendered as milestones instead of bars.
 - Zoom level (Day / Week / Month) and a "show completed tasks" toggle,
@@ -75,7 +81,9 @@ gulp serve
 1. Add the **Planner Gantt** web part to a page and edit it.
 2. In the property pane, pick a **Plan** from the dropdown (it lists every
    plan from every Microsoft 365 group you belong to).
-3. Optionally adjust the **Zoom level** and **Show completed tasks** toggle.
+3. Optionally adjust the **Zoom level**, **Show completed tasks**, **Show
+   buckets as phases** toggle, and which **Buckets to show** (uncheck a
+   bucket, e.g. Backlog, to hide it and its tasks from the chart).
 4. Save the page — all visitors now see that plan's Gantt chart, scoped to
    whatever Planner tasks they're individually allowed to see.
 

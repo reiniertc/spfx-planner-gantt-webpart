@@ -29,7 +29,10 @@ function toGanttTasks(rows: IGanttRow[]): GanttTask[] {
 }
 
 const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) => {
-  const { planId, viewMode, showCompletedTasks, plannerService } = props;
+  const { planId, viewMode, showCompletedTasks, showBucketsAsPhases, bucketFilter, plannerService } = props;
+  // Stringified so an equivalent-but-new object reference (the web part
+  // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
+  const bucketFilterKey: string = JSON.stringify(bucketFilter || {});
 
   const [rows, setRows] = React.useState<IGanttRow[] | undefined>(undefined);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -47,7 +50,11 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     setError(undefined);
 
     plannerService
-      .getGanttRows(planId, showCompletedTasks)
+      .getGanttRows(planId, {
+        includeCompleted: showCompletedTasks,
+        showBucketsAsPhases,
+        bucketFilter
+      })
       .then(result => {
         if (!isCancelled) {
           setRows(result);
@@ -64,7 +71,8 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     return () => {
       isCancelled = true;
     };
-  }, [planId, showCompletedTasks, plannerService]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planId, showCompletedTasks, showBucketsAsPhases, bucketFilterKey, plannerService]);
 
   if (!planId) {
     return (

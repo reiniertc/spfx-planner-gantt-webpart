@@ -7,6 +7,11 @@ declare interface IPlannerGanttWebPartStrings {
   ViewModeWeek: string;
   ViewModeMonth: string;
   ShowCompletedFieldLabel: string;
+  ShowBucketsAsPhasesFieldLabel: string;
+  BucketsGroupName: string;
+  LoadingBucketsLabel: string;
+  ErrorLoadingBucketsLabel: string;
+  NoBucketsLabel: string;
   LoadingPlansLabel: string;
   ErrorLoadingPlansLabel: string;
   NoPlanSelectedLabel: string;
