@@ -15,6 +15,10 @@ export interface IPlannerGanttProps {
   showStartDateColumn: boolean;
   showEndDateColumn: boolean;
   showAssigneeColumn: boolean;
+  defaultZoomLevel: number;
+  showZoomControl: boolean;
+  showPrintButton: boolean;
+  showAssigneeFilter: boolean;
   bucketFilter?: IBucketFilter;
   isDarkTheme: boolean;
   themePrimary: string;

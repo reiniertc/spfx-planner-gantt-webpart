@@ -12,7 +12,7 @@ import type { IPlannerGanttProps } from './IPlannerGanttProps';
 import { IGanttRow } from '../models/IPlannerModels';
 import {
   IGanttChartTask, IColumnWidths, DEFAULT_COLUMN_WIDTHS, ColumnWidthsContext,
-  createTaskListHeader, createTaskListTable
+  createTaskListHeader, createTaskListTable, openPlannerTask
 } from './GanttTaskList';
 import * as strings from 'PlannerGanttWebPartStrings';
 
@@ -20,18 +20,16 @@ import * as strings from 'PlannerGanttWebPartStrings';
 // once - the slider adjusts this, and columnWidth is derived from it and
 // the chart's actual rendered width, so "zooming out" really does bring
 // more weeks/days/months into view instead of switching time units.
-const MIN_VISIBLE_UNITS: number = 2;
-const MAX_VISIBLE_UNITS: number = 16;
+export const MIN_VISIBLE_UNITS: number = 2;
+export const MAX_VISIBLE_UNITS: number = 16;
 const MIN_COLUMN_WIDTH_PX: number = 28;
 const FALLBACK_CONTAINER_WIDTH: number = 900;
 
-const DEFAULT_VISIBLE_UNITS: Record<string, number> = {
-  Day: 10,
-  Week: 3,
-  Month: 4
-};
-
 const UNASSIGNED_KEY: string = '__unassigned__';
+
+function clampVisibleUnits(value: number): number {
+  return Math.min(MAX_VISIBLE_UNITS, Math.max(MIN_VISIBLE_UNITS, value));
+}
 
 const TODAY_LINE_COLOR: string = 'rgba(232, 17, 35, 0.15)';
 const TODAY_LINE_COLOR_HIDDEN: string = 'transparent';
@@ -119,27 +117,30 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   const {
     planId, viewMode, showCompletedTasks, showBucketsAsPhases, colorBarsByStatus, sortTasksByStartDate,
     sortBucketsByStartDate, showTaskNameOnBar, showCurrentDateLine, showStartDateColumn, showEndDateColumn,
-    showAssigneeColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey
+    showAssigneeColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey,
+    defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
   const bucketFilterKey: string = JSON.stringify(bucketFilter || {});
+  const clampedDefaultZoom: number = clampVisibleUnits(defaultZoomLevel);
 
   const [rows, setRows] = React.useState<IGanttRow[] | undefined>(undefined);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
   // Live, viewer-side controls - not persisted to the web part's properties.
-  const [visibleUnits, setVisibleUnits] = React.useState<number>(() => DEFAULT_VISIBLE_UNITS[viewMode] || DEFAULT_VISIBLE_UNITS.Week);
+  const [visibleUnits, setVisibleUnits] = React.useState<number>(clampedDefaultZoom);
   const [selectedAssignee, setSelectedAssignee] = React.useState<string>('');
   const [columnWidths, setColumnWidths] = React.useState<IColumnWidths>(DEFAULT_COLUMN_WIDTHS);
   const [containerWidth, setContainerWidth] = React.useState<number>(FALLBACK_CONTAINER_WIDTH);
   const [chartWrapperEl, setChartWrapperEl] = React.useState<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
-    setVisibleUnits(DEFAULT_VISIBLE_UNITS[viewMode] || DEFAULT_VISIBLE_UNITS.Week);
+    setVisibleUnits(clampedDefaultZoom);
     setSelectedAssignee('');
-  }, [planId, viewMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planId, viewMode, clampedDefaultZoom]);
 
   // Re-measures whenever the wrapper mounts/unmounts (e.g. switching between
   // the loading/empty/chart states) and whenever the page resizes it.
@@ -298,38 +299,53 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     Month: strings.ZoomUnitMonth
   } as Record<string, string>)[viewMode] || strings.ZoomUnitWeek;
   const rootClassName: string = showTaskNameOnBar ? styles.plannerGantt : `${styles.plannerGantt} ${styles.hideBarLabels}`;
+  const hasAnyToolbarControl: boolean = showZoomControl || showAssigneeFilter || showPrintButton;
+
+  const handleTaskSelect = (task: IGanttChartTask, isSelected: boolean): void => {
+    if (isSelected && task.type !== 'project') {
+      openPlannerTask(task.id);
+    }
+  };
 
   return (
     <div className={rootClassName}>
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarItem}>
-          <Slider
-            label={strings.ZoomSliderLabel}
-            min={MIN_VISIBLE_UNITS}
-            max={MAX_VISIBLE_UNITS}
-            step={1}
-            value={visibleUnits}
-            showValue={true}
-            valueFormat={(value: number) => `${value} ${zoomUnitLabel}`}
-            onChange={(value: number) => setVisibleUnits(value)}
-          />
+      {hasAnyToolbarControl && (
+        <div className={styles.toolbar}>
+          {showZoomControl && (
+            <div className={styles.toolbarItem}>
+              <Slider
+                label={strings.ZoomSliderLabel}
+                min={MIN_VISIBLE_UNITS}
+                max={MAX_VISIBLE_UNITS}
+                step={1}
+                value={visibleUnits}
+                showValue={true}
+                valueFormat={(value: number) => `${value} ${zoomUnitLabel}`}
+                onChange={(value: number) => setVisibleUnits(value)}
+              />
+            </div>
+          )}
+          {showAssigneeFilter && (
+            <div className={styles.toolbarItem}>
+              <Dropdown
+                label={strings.AssigneeFilterLabel}
+                selectedKey={selectedAssignee}
+                options={assigneeOptions}
+                onChange={(_event, option) => setSelectedAssignee(option ? String(option.key) : '')}
+              />
+            </div>
+          )}
+          {showPrintButton && (
+            <div className={styles.toolbarItem}>
+              <DefaultButton
+                text={strings.PrintButtonLabel}
+                iconProps={{ iconName: 'Print' }}
+                onClick={() => handlePrintExport(chartWrapperEl || undefined, props.planTitle)}
+              />
+            </div>
+          )}
         </div>
-        <div className={styles.toolbarItem}>
-          <Dropdown
-            label={strings.AssigneeFilterLabel}
-            selectedKey={selectedAssignee}
-            options={assigneeOptions}
-            onChange={(_event, option) => setSelectedAssignee(option ? String(option.key) : '')}
-          />
-        </div>
-        <div className={styles.toolbarItem}>
-          <DefaultButton
-            text={strings.PrintButtonLabel}
-            iconProps={{ iconName: 'Print' }}
-            onClick={() => handlePrintExport(chartWrapperEl || undefined, props.planTitle)}
-          />
-        </div>
-      </div>
+      )}
       <div ref={setChartWrapperEl}>
         <h2 className={styles.planTitle}>{props.planTitle}</h2>
         {visibleRows && visibleRows.length > 0 ? (
@@ -345,6 +361,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
               todayColor={showCurrentDateLine ? TODAY_LINE_COLOR : TODAY_LINE_COLOR_HIDDEN}
               TaskListHeader={TaskListHeader}
               TaskListTable={TaskListTable}
+              onSelect={handleTaskSelect}
             />
           </ColumnWidthsContext.Provider>
         ) : (

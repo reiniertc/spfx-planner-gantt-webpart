@@ -32,6 +32,12 @@ declare interface IPlannerGanttWebPartStrings {
   ColumnStartHeader: string;
   ColumnEndHeader: string;
   ColumnAssigneeHeader: string;
+  ToolbarGroupName: string;
+  DefaultZoomLevelFieldLabel: string;
+  ShowZoomControlFieldLabel: string;
+  ShowAssigneeFilterFieldLabel: string;
+  ShowPrintButtonFieldLabel: string;
+  OpenInPlannerLabel: string;
   BucketsGroupName: string;
   LoadingBucketsLabel: string;
   ErrorLoadingBucketsLabel: string;

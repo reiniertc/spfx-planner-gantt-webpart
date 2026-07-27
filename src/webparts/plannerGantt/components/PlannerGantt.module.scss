@@ -117,3 +117,12 @@
 .ganttTablePhaseName {
   font-weight: 700;
 }
+
+.ganttTableTaskLink {
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    color: var(--link);
+  }
+}

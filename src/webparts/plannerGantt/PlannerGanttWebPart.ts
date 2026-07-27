@@ -9,6 +9,7 @@ import {
   PropertyPaneToggle,
   PropertyPaneCheckbox,
   PropertyPaneLabel,
+  PropertyPaneSlider,
   type IPropertyPaneDropdownOption
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
@@ -16,7 +17,7 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import { MSGraphClientV3 } from '@microsoft/sp-http';
 
 import * as strings from 'PlannerGanttWebPartStrings';
-import PlannerGantt from './components/PlannerGantt';
+import PlannerGantt, { MIN_VISIBLE_UNITS, MAX_VISIBLE_UNITS } from './components/PlannerGantt';
 import { IPlannerGanttProps } from './components/IPlannerGanttProps';
 import { PlannerService } from './services/PlannerService';
 import { IPlannerPlanOption, IPlannerBucket, IBucketFilter } from './models/IPlannerModels';
@@ -35,8 +36,14 @@ export interface IPlannerGanttWebPartProps {
   showStartDateColumn: boolean;
   showEndDateColumn: boolean;
   showAssigneeColumn: boolean;
+  defaultZoomLevel: number;
+  showZoomControl: boolean;
+  showPrintButton: boolean;
+  showAssigneeFilter: boolean;
   bucketFilter?: IBucketFilter;
 }
+
+const DEFAULT_ZOOM_LEVEL: number = 3;
 
 const NO_PLAN_SELECTED: string = '';
 
@@ -79,6 +86,10 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         showStartDateColumn: this.properties.showStartDateColumn !== false,
         showEndDateColumn: this.properties.showEndDateColumn !== false,
         showAssigneeColumn: this.properties.showAssigneeColumn !== false,
+        defaultZoomLevel: this.properties.defaultZoomLevel || DEFAULT_ZOOM_LEVEL,
+        showZoomControl: this.properties.showZoomControl !== false,
+        showPrintButton: this.properties.showPrintButton !== false,
+        showAssigneeFilter: this.properties.showAssigneeFilter !== false,
         // Shallow-copied so a mutated nested property still produces a new
         // reference for React to notice between property pane changes.
         bucketFilter: this.properties.bucketFilter ? { ...this.properties.bucketFilter } : undefined,
@@ -290,6 +301,30 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showAssigneeColumn', {
             label: strings.ShowAssigneeColumnFieldLabel,
             checked: this.properties.showAssigneeColumn !== false
+          })
+        ]
+      },
+      {
+        groupName: strings.ToolbarGroupName,
+        groupFields: [
+          PropertyPaneSlider('defaultZoomLevel', {
+            label: strings.DefaultZoomLevelFieldLabel,
+            min: MIN_VISIBLE_UNITS,
+            max: MAX_VISIBLE_UNITS,
+            step: 1,
+            value: this.properties.defaultZoomLevel || DEFAULT_ZOOM_LEVEL
+          }),
+          PropertyPaneToggle('showZoomControl', {
+            label: strings.ShowZoomControlFieldLabel,
+            checked: this.properties.showZoomControl !== false
+          }),
+          PropertyPaneToggle('showAssigneeFilter', {
+            label: strings.ShowAssigneeFilterFieldLabel,
+            checked: this.properties.showAssigneeFilter !== false
+          }),
+          PropertyPaneToggle('showPrintButton', {
+            label: strings.ShowPrintButtonFieldLabel,
+            checked: this.properties.showPrintButton !== false
           })
         ]
       }

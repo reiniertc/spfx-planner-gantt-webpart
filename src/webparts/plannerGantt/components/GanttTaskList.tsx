@@ -59,6 +59,13 @@ interface ITaskListTableProps {
   onExpanderClick: (task: GanttTask) => void;
 }
 
+const PLANNER_TASK_URL_BASE: string = 'https://tasks.office.com/Home/Task/';
+
+/** Opens the actual Planner task in a new tab. Not valid for phase/project rows - those are synthetic bucket summaries, not real Planner tasks. */
+export function openPlannerTask(taskId: string): void {
+  window.open(`${PLANNER_TASK_URL_BASE}${encodeURIComponent(taskId)}`, '_blank', 'noopener,noreferrer');
+}
+
 function expanderSymbol(task: GanttTask): string {
   if (task.hideChildren === false) {
     return '▼';
@@ -149,12 +156,18 @@ export function createTaskListTable(columns: IColumnVisibility): React.FC<ITaskL
                 >
                   {expanderSymbol(task)}
                 </span>
-                <span
-                  className={isPhase ? styles.ganttTablePhaseName : undefined}
-                  style={isPhaseChild ? { paddingLeft: '1.2em' } : undefined}
-                >
-                  {task.name}
-                </span>
+                {isPhase ? (
+                  <span className={styles.ganttTablePhaseName}>{task.name}</span>
+                ) : (
+                  <span
+                    className={styles.ganttTableTaskLink}
+                    style={isPhaseChild ? { paddingLeft: '1.2em' } : undefined}
+                    onClick={() => openPlannerTask(task.id)}
+                    title={strings.OpenInPlannerLabel}
+                  >
+                    {task.name}
+                  </span>
+                )}
               </div>
               {columns.showStartDate && (
                 <div className={styles.ganttTableCell} style={{ width: widths.start }}>

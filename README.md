@@ -58,12 +58,15 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   Planner's assignee user ids via a single batched Graph call per load).
   Every visible column (including Name) can be resized by dragging its
   right edge.
-- **Live toolbar above the chart** (viewer-side, not saved to the page):
+- **Live toolbar above the chart** (viewer-side, not saved to the page).
+  Each control can be turned on or off from the property pane's **Viewer
+  toolbar** group (the toolbar disappears entirely if all three are off):
   - A **zoom slider** that controls how many of the chosen time unit
     (Day/Week/Month, set via the property pane) fit in view at once - drag
     it to zoom out from e.g. 3 weeks visible to 10+, or zoom in for more
     detail. This reflows the column width to fit the chart's actual
-    rendered width, it doesn't just switch time units.
+    rendered width, it doesn't just switch time units. Its starting
+    position is set by the **Default zoom level** property (2-16).
   - An **"Assigned to" filter** that hides tasks (and any phase left with
     nothing under it) that don't match the selected person, including an
     "Unassigned" option.
@@ -74,6 +77,10 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
     on the page itself also hides the toolbar via print CSS, but will still
     include whatever else is on the page since that's outside this web
     part's control.
+- **Click a task to open it in Planner.** Both the bar itself and its name
+  in the task list open the actual task at `tasks.office.com` in a new tab.
+  Phase/bucket rows aren't clickable - they're a synthetic summary, not a
+  real Planner task.
 - Read-only by design: Planner remains the system of record. The chart does
   not write back to Planner.
 
@@ -129,12 +136,15 @@ gulp serve
    to** columns next to the chart.
 5. Under **Buckets to show**, uncheck a bucket (e.g. Backlog) to hide it and
    its tasks from the chart entirely.
-6. Save the page. Visitors then see that plan's Gantt chart, scoped to
+6. Under **Viewer toolbar**, set the **Default zoom level** and turn the
+   **zoom slider**, **Assigned to filter** and **print button** on or off
+   for visitors.
+7. Save the page. Visitors then see that plan's Gantt chart, scoped to
    whatever Planner tasks they're individually allowed to see, and can each
-   independently use the **zoom slider**, **Assigned to filter** and
-   **Print / export to PDF** button above the chart, and **drag column
-   borders** to resize them, without affecting what anyone else sees or
-   changing the saved page.
+   independently use whichever toolbar controls are enabled and **drag
+   column borders** to resize them, without affecting what anyone else sees
+   or changing the saved page. Clicking a task (bar or name) opens it in
+   Planner in a new tab.
 
 ## Solution architecture
 
