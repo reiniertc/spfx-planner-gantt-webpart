@@ -35,6 +35,13 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   tasks with no due date at all are rendered as milestones instead of bars.
 - Zoom level (Day / Week / Month) and a "show completed tasks" toggle,
   configurable per web part instance from the property pane.
+- **Progress on the bar.** Optionally bakes each task's percent-complete
+  into its label (e.g. "Design homepage (60%)"), since the underlying
+  charting library doesn't have a separate on-bar text slot.
+- **Today indicator.** Today's column is highlighted; can be turned off.
+- **Optional columns** in the task list next to the chart: start date, due
+  date, and who a task is assigned to (assignee names are resolved from
+  Planner's assignee user ids via a single batched Graph call per load).
 - Read-only by design: Planner remains the system of record. The chart does
   not write back to Planner.
 
@@ -47,12 +54,13 @@ following Graph **delegated** permissions must be approved once per tenant:
 | ------------------ | ------------------------------------------------------------- |
 | `Group.Read.All`   | Enumerate the Microsoft 365 groups the user belongs to, to find their Planner plans |
 | `Tasks.Read`       | Read plan buckets and tasks from Planner                     |
+| `User.ReadBasic.All` | Resolve assignee user ids to display names for the "Assigned to" column |
 
 These are declared in [`config/package-solution.json`](./config/package-solution.json)
 under `webApiPermissionRequests`. After deploying the `.sppkg`:
 
 1. Go to the **SharePoint Admin Center** → **Advanced** → **API access**.
-2. Approve the two pending Microsoft Graph requests for this solution.
+2. Approve the three pending Microsoft Graph requests for this solution.
 3. Users can only see plans/tasks they already have access to in Planner —
    this web part does not elevate anyone's permissions.
 
@@ -81,10 +89,14 @@ gulp serve
 1. Add the **Planner Gantt** web part to a page and edit it.
 2. In the property pane, pick a **Plan** from the dropdown (it lists every
    plan from every Microsoft 365 group you belong to).
-3. Optionally adjust the **Zoom level**, **Show completed tasks**, **Show
-   buckets as phases** toggle, and which **Buckets to show** (uncheck a
-   bucket, e.g. Backlog, to hide it and its tasks from the chart).
-4. Save the page — all visitors now see that plan's Gantt chart, scoped to
+3. Optionally adjust, under **Display**: **Zoom level**, **Show completed
+   tasks**, **Show buckets as phases**, **Show progress percentage on
+   bars**, and **Highlight today's date**.
+4. Under **Columns**, toggle the **Start date**, **Due date** and **Assigned
+   to** columns next to the chart.
+5. Under **Buckets to show**, uncheck a bucket (e.g. Backlog) to hide it and
+   its tasks from the chart entirely.
+6. Save the page — all visitors now see that plan's Gantt chart, scoped to
    whatever Planner tasks they're individually allowed to see.
 
 ## Solution architecture
@@ -95,6 +107,9 @@ gulp serve
   and the mapping from Planner tasks/buckets to Gantt rows.
 - `src/webparts/plannerGantt/components/PlannerGantt.tsx` — React component
   that fetches the selected plan's tasks and renders `gantt-task-react`.
+- `src/webparts/plannerGantt/components/GanttTaskList.tsx` — custom task
+  list header/table so the start/due/assignee columns can be toggled
+  (`gantt-task-react`'s built-in table only ever shows name/from/to).
 - `src/webparts/plannerGantt/models/IPlannerModels.ts` — shared TypeScript
   interfaces for plans, buckets, tasks and Gantt rows.
 
@@ -105,6 +120,12 @@ gulp serve
 - A plan with many buckets/tasks means many Graph round trips on first load
   (one per group to discover plans); this is a Graph API constraint, not a
   caching layer this web part currently implements.
+- **Zoom only goes up to Month.** [`gantt-task-react`](https://github.com/MaTeMaTuK/gantt-task-react)
+  (the charting library used here) doesn't have a Year view mode — its
+  coarsest zoom level is Month. A React-17-compatible version with Year
+  support doesn't exist upstream; adding one would mean switching to a
+  different charting library. Open an issue/PR if that's a hard
+  requirement for your use case.
 
 ## Disclaimer
 

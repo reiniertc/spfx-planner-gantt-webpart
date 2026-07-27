@@ -27,6 +27,11 @@ export interface IPlannerGanttWebPartProps {
   viewMode: string;
   showCompletedTasks: boolean;
   showBucketsAsPhases: boolean;
+  showProgressOnBar: boolean;
+  showCurrentDateLine: boolean;
+  showStartDateColumn: boolean;
+  showEndDateColumn: boolean;
+  showAssigneeColumn: boolean;
   bucketFilter?: IBucketFilter;
 }
 
@@ -55,6 +60,11 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         viewMode: this.properties.viewMode || 'Week',
         showCompletedTasks: !!this.properties.showCompletedTasks,
         showBucketsAsPhases: this.properties.showBucketsAsPhases !== false,
+        showProgressOnBar: this.properties.showProgressOnBar !== false,
+        showCurrentDateLine: this.properties.showCurrentDateLine !== false,
+        showStartDateColumn: this.properties.showStartDateColumn !== false,
+        showEndDateColumn: this.properties.showEndDateColumn !== false,
+        showAssigneeColumn: this.properties.showAssigneeColumn !== false,
         // Shallow-copied so a mutated nested property still produces a new
         // reference for React to notice between property pane changes.
         bucketFilter: this.properties.bucketFilter ? { ...this.properties.bucketFilter } : undefined,
@@ -197,7 +207,12 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
             options: planDropdownOptions,
             disabled: isLoadingPlans || plansHaveError,
             selectedKey: this.properties.planId
-          }),
+          })
+        ]
+      },
+      {
+        groupName: strings.DisplayGroupName,
+        groupFields: [
           PropertyPaneDropdown('viewMode', {
             label: strings.ViewModeFieldLabel,
             options: [
@@ -213,6 +228,31 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showBucketsAsPhases', {
             label: strings.ShowBucketsAsPhasesFieldLabel,
             checked: this.properties.showBucketsAsPhases !== false
+          }),
+          PropertyPaneToggle('showProgressOnBar', {
+            label: strings.ShowProgressOnBarFieldLabel,
+            checked: this.properties.showProgressOnBar !== false
+          }),
+          PropertyPaneToggle('showCurrentDateLine', {
+            label: strings.ShowCurrentDateLineFieldLabel,
+            checked: this.properties.showCurrentDateLine !== false
+          })
+        ]
+      },
+      {
+        groupName: strings.ColumnsGroupName,
+        groupFields: [
+          PropertyPaneToggle('showStartDateColumn', {
+            label: strings.ShowStartDateColumnFieldLabel,
+            checked: this.properties.showStartDateColumn !== false
+          }),
+          PropertyPaneToggle('showEndDateColumn', {
+            label: strings.ShowEndDateColumnFieldLabel,
+            checked: this.properties.showEndDateColumn !== false
+          }),
+          PropertyPaneToggle('showAssigneeColumn', {
+            label: strings.ShowAssigneeColumnFieldLabel,
+            checked: this.properties.showAssigneeColumn !== false
           })
         ]
       }

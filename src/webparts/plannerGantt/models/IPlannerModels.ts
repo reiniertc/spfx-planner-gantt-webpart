@@ -30,7 +30,7 @@ export interface IPlannerTask {
   dueDateTime?: string;
   createdDateTime: string;
   completedDateTime?: string;
-  assigneeCount: number;
+  assigneeIds: string[];
 }
 
 /**
@@ -47,4 +47,6 @@ export interface IGanttRow {
   type: 'task' | 'project' | 'milestone';
   project?: string;
   bucketName: string;
+  /** Comma-separated display names, resolved via Graph. Empty string when unassigned. */
+  assigneeNames: string;
 }

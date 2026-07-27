@@ -107,8 +107,10 @@ export class PlannerService {
         dueDateTime: task.dueDateTime,
         createdDateTime: task.createdDateTime,
         completedDateTime: task.completedDateTime,
-        assigneeCount: Object.keys(task.assignments || {}).length
+        assigneeIds: Object.keys(task.assignments || {})
       }));
+
+    const assigneeNameById: Record<string, string> = await this.resolveAssigneeNames(client, tasks);
 
     const rows: IGanttRow[] = [];
 
@@ -116,7 +118,8 @@ export class PlannerService {
       .filter(bucket => tasks.some(task => task.bucketId === bucket.id))
       .forEach(bucket => {
         const bucketTasks: IPlannerTask[] = tasks.filter(task => task.bucketId === bucket.id);
-        const taskRows: IGanttRow[] = bucketTasks.map(task => this.toGanttRow(task, bucket.id, options.showBucketsAsPhases));
+        const taskRows: IGanttRow[] = bucketTasks.map(task =>
+          this.toGanttRow(task, bucket.id, options.showBucketsAsPhases, assigneeNameById));
 
         if (options.showBucketsAsPhases) {
           rows.push(this.toBucketProjectRow(bucket.id, bucket.name, taskRows));
@@ -127,7 +130,8 @@ export class PlannerService {
     // Tasks whose bucket no longer resolves (rare, but Graph doesn't guarantee referential integrity on read).
     const orphanTasks: IPlannerTask[] = tasks.filter(task => !bucketNameById[task.bucketId]);
     if (orphanTasks.length > 0) {
-      const orphanRows: IGanttRow[] = orphanTasks.map(task => this.toGanttRow(task, 'unbucketed', options.showBucketsAsPhases));
+      const orphanRows: IGanttRow[] = orphanTasks.map(task =>
+        this.toGanttRow(task, 'unbucketed', options.showBucketsAsPhases, assigneeNameById));
       if (options.showBucketsAsPhases) {
         rows.push(this.toBucketProjectRow('unbucketed', 'Other tasks', orphanRows));
       }
@@ -137,10 +141,48 @@ export class PlannerService {
     return rows;
   }
 
-  private toGanttRow(task: IPlannerTask, bucketId: string, showBucketsAsPhases: boolean): IGanttRow {
+  /**
+   * Planner only gives us assignee user ids on the task; resolving them to
+   * display names is a single batched Graph call for every distinct id
+   * across the whole plan, rather than one call per task.
+   */
+  private async resolveAssigneeNames(client: MSGraphClientV3, tasks: IPlannerTask[]): Promise<Record<string, string>> {
+    const allIds: string[] = tasks.reduce<string[]>((ids, task) => ids.concat(task.assigneeIds), []);
+    const distinctIds: string[] = allIds.filter((id, index) => allIds.indexOf(id) === index);
+
+    if (distinctIds.length === 0) {
+      return {};
+    }
+
+    try {
+      const response = await client
+        .api('/directoryObjects/getByIds')
+        .post({ ids: distinctIds, types: ['user'] });
+
+      const nameById: Record<string, string> = {};
+      (response.value || []).forEach((user: { id: string; displayName?: string }) => {
+        nameById[user.id] = user.displayName || user.id;
+      });
+      return nameById;
+    } catch {
+      // Best-effort: if resolution fails (e.g. missing User.ReadBasic.All), fall back to blank names.
+      return {};
+    }
+  }
+
+  private toGanttRow(
+    task: IPlannerTask,
+    bucketId: string,
+    showBucketsAsPhases: boolean,
+    assigneeNameById: Record<string, string>
+  ): IGanttRow {
     const created: Date = new Date(task.createdDateTime);
     const start: Date = task.startDateTime ? new Date(task.startDateTime) : created;
     const project: string | undefined = showBucketsAsPhases ? bucketId : undefined;
+    const assigneeNames: string = task.assigneeIds
+      .map(id => assigneeNameById[id])
+      .filter(name => !!name)
+      .join(', ');
 
     // A Planner task with no due date has nothing to draw a bar between,
     // so it's rendered as a milestone at its start date instead.
@@ -153,7 +195,8 @@ export class PlannerService {
         progress: task.percentComplete || 0,
         type: 'milestone',
         project,
-        bucketName: ''
+        bucketName: '',
+        assigneeNames
       };
     }
 
@@ -170,7 +213,8 @@ export class PlannerService {
       progress: task.percentComplete || 0,
       type: 'task',
       project,
-      bucketName: ''
+      bucketName: '',
+      assigneeNames
     };
   }
 
@@ -185,7 +229,8 @@ export class PlannerService {
       end: new Date(Math.max(...ends)),
       progress: Math.round(taskRows.reduce((sum, row) => sum + row.progress, 0) / taskRows.length),
       type: 'project',
-      bucketName
+      bucketName,
+      assigneeNames: ''
     };
   }
 }

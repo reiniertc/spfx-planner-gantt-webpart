@@ -9,3 +9,55 @@
   margin: 0 0 0.75em;
   font-weight: 600;
 }
+
+.ganttTableHeader {
+  display: flex;
+  border-bottom: #e6e4e4 1px solid;
+  border-top: #e6e4e4 1px solid;
+  border-left: #e6e4e4 1px solid;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.ganttTableHeaderCell {
+  padding: 0 0.5em;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ganttTableRow {
+  display: flex;
+  align-items: center;
+  border-left: #e6e4e4 1px solid;
+
+  &:nth-of-type(even) {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+}
+
+.ganttTableCell {
+  padding: 0 0.5em;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.ganttTableExpander {
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.7em;
+  width: 1em;
+  flex-shrink: 0;
+}
+
+.ganttTableExpanderEmpty {
+  width: 1em;
+  flex-shrink: 0;
+}

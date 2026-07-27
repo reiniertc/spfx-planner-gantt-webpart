@@ -41,6 +41,10 @@
       {
         "resource": "Microsoft Graph",
         "scope": "Tasks.Read"
+      },
+      {
+        "resource": "Microsoft Graph",
+        "scope": "User.ReadBasic.All"
       }
     ]
   },
