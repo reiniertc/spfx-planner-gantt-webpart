@@ -43,12 +43,14 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   tasks with no due date at all are rendered as milestones instead of bars.
 - Zoom level (Day / Week / Month) and a "show completed tasks" toggle,
   configurable per web part instance from the property pane.
-- **Color bars by status.** Planner only has three real progress states
-  (not started / in progress / done - 0%, 50%, 100%), so instead of a
-  numeric percentage the whole bar is colored by status: the site's
-  secondary theme color for not-started, primary theme color for in
-  progress, and grey for done. Can be turned off to use the chart's
-  default single-color bars.
+- **Color bars by status, no percentage shown anywhere.** Planner only has
+  three real progress states (not started / in progress / done - 0%, 50%,
+  100%), so instead of a numeric percentage the whole bar is colored by
+  status: the site's secondary theme color for not-started, primary theme
+  color for in progress, and grey for done. Can be turned off to use the
+  chart's default single-color bars. The hover tooltip is also replaced
+  (name + dates + duration only) since gantt-task-react's default tooltip
+  always includes a "Progress: NN %" line.
 - **Today indicator.** Today's column is highlighted; can be turned off.
 - **Show task name on bars (toggle).** Turn off to remove the name label
   from the bars themselves (the task list on the left still always shows
@@ -60,7 +62,10 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   right edge.
 - **Live toolbar above the chart** (viewer-side, not saved to the page).
   Each control can be turned on or off from the property pane's **Viewer
-  toolbar** group (the toolbar disappears entirely if all three are off):
+  toolbar** group (the toolbar disappears entirely if all four are off):
+  - A **completed-tasks toggle** ("All tasks" / "Hide completed") letting
+    each visitor override the **Show completed tasks by default** property
+    for their own view.
   - A **zoom slider** that controls how many of the chosen time unit
     (Day/Week/Month, set via the property pane) fit in view at once - drag
     it to zoom out from e.g. 3 weeks visible to 10+, or zoom in for more
@@ -137,8 +142,8 @@ gulp serve
 5. Under **Buckets to show**, uncheck a bucket (e.g. Backlog) to hide it and
    its tasks from the chart entirely.
 6. Under **Viewer toolbar**, set the **Default zoom level** and turn the
-   **zoom slider**, **Assigned to filter** and **print button** on or off
-   for visitors.
+   **completed-tasks toggle**, **zoom slider**, **Assigned to filter** and
+   **print button** on or off for visitors.
 7. Save the page. Visitors then see that plan's Gantt chart, scoped to
    whatever Planner tasks they're individually allowed to see, and can each
    independently use whichever toolbar controls are enabled and **drag

@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Gantt, ViewMode } from 'gantt-task-react';
+import { Gantt, ViewMode, Task as GanttTask } from 'gantt-task-react';
 import 'gantt-task-react/dist/index.css';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Slider } from '@fluentui/react/lib/Slider';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
 import { DefaultButton } from '@fluentui/react/lib/Button';
+import { Toggle } from '@fluentui/react/lib/Toggle';
 
 import styles from './PlannerGantt.module.scss';
 import type { IPlannerGanttProps } from './IPlannerGanttProps';
@@ -33,12 +34,33 @@ function clampVisibleUnits(value: number): number {
 
 const TODAY_LINE_COLOR: string = 'rgba(232, 17, 35, 0.15)';
 const TODAY_LINE_COLOR_HIDDEN: string = 'transparent';
+const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
 
 interface IThemeColors {
   primary: string;
   secondary: string;
   grey: string;
 }
+
+interface ITooltipContentProps {
+  task: GanttTask;
+  fontSize: string;
+  fontFamily: string;
+}
+
+// Replaces gantt-task-react's default tooltip, which always includes a
+// "Progress: NN %" line - status is already conveyed by the bar color
+// (see colorForStatus), so the percentage would just be noise here.
+const PlannerTooltipContent: React.FC<ITooltipContentProps> = ({ task, fontSize, fontFamily }) => {
+  const durationDays: number = Math.round((task.end.getTime() - task.start.getTime()) / MS_PER_DAY);
+  return (
+    <div className={styles.ganttTooltip} style={{ fontSize, fontFamily }}>
+      <b style={{ fontSize: `calc(${fontSize} + 4px)` }}>{task.name}</b>
+      <div className={styles.ganttTooltipLine}>{task.start.toLocaleDateString()} – {task.end.toLocaleDateString()}</div>
+      {durationDays > 0 && <div className={styles.ganttTooltipLine}>{durationDays} day(s)</div>}
+    </div>
+  );
+};
 
 /**
  * Planner only has three real progress states (0 / 50 / 100 - not started,
@@ -118,7 +140,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     planId, viewMode, showCompletedTasks, showBucketsAsPhases, colorBarsByStatus, sortTasksByStartDate,
     sortBucketsByStartDate, showTaskNameOnBar, showCurrentDateLine, showStartDateColumn, showEndDateColumn,
     showAssigneeColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey,
-    defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter
+    defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter, showCompletedFilterControl
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
@@ -132,6 +154,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   // Live, viewer-side controls - not persisted to the web part's properties.
   const [visibleUnits, setVisibleUnits] = React.useState<number>(clampedDefaultZoom);
   const [selectedAssignee, setSelectedAssignee] = React.useState<string>('');
+  const [liveShowCompleted, setLiveShowCompleted] = React.useState<boolean>(showCompletedTasks);
   const [columnWidths, setColumnWidths] = React.useState<IColumnWidths>(DEFAULT_COLUMN_WIDTHS);
   const [containerWidth, setContainerWidth] = React.useState<number>(FALLBACK_CONTAINER_WIDTH);
   const [chartWrapperEl, setChartWrapperEl] = React.useState<HTMLDivElement | null>(null);
@@ -139,8 +162,9 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   React.useEffect(() => {
     setVisibleUnits(clampedDefaultZoom);
     setSelectedAssignee('');
+    setLiveShowCompleted(showCompletedTasks);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planId, viewMode, clampedDefaultZoom]);
+  }, [planId, viewMode, clampedDefaultZoom, showCompletedTasks]);
 
   // Re-measures whenever the wrapper mounts/unmounts (e.g. switching between
   // the loading/empty/chart states) and whenever the page resizes it.
@@ -177,7 +201,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
 
     plannerService
       .getGanttRows(planId, {
-        includeCompleted: showCompletedTasks,
+        includeCompleted: liveShowCompleted,
         showBucketsAsPhases,
         sortByStartDate: sortTasksByStartDate,
         sortBucketsByStartDate,
@@ -200,7 +224,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
       isCancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planId, showCompletedTasks, showBucketsAsPhases, sortTasksByStartDate, sortBucketsByStartDate, bucketFilterKey, plannerService]);
+  }, [planId, liveShowCompleted, showBucketsAsPhases, sortTasksByStartDate, sortBucketsByStartDate, bucketFilterKey, plannerService]);
 
   const columns = React.useMemo(() => ({
     showStartDate: showStartDateColumn,
@@ -299,7 +323,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     Month: strings.ZoomUnitMonth
   } as Record<string, string>)[viewMode] || strings.ZoomUnitWeek;
   const rootClassName: string = showTaskNameOnBar ? styles.plannerGantt : `${styles.plannerGantt} ${styles.hideBarLabels}`;
-  const hasAnyToolbarControl: boolean = showZoomControl || showAssigneeFilter || showPrintButton;
+  const hasAnyToolbarControl: boolean = showZoomControl || showAssigneeFilter || showPrintButton || showCompletedFilterControl;
 
   const handleTaskSelect = (task: IGanttChartTask, isSelected: boolean): void => {
     if (isSelected && task.type !== 'project') {
@@ -311,6 +335,17 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     <div className={rootClassName}>
       {hasAnyToolbarControl && (
         <div className={styles.toolbar}>
+          {showCompletedFilterControl && (
+            <div className={styles.toolbarItem}>
+              <Toggle
+                label={strings.CompletedTasksToggleLabel}
+                onText={strings.CompletedTasksToggleOnText}
+                offText={strings.CompletedTasksToggleOffText}
+                checked={liveShowCompleted}
+                onChange={(_event, checked) => setLiveShowCompleted(!!checked)}
+              />
+            </div>
+          )}
           {showZoomControl && (
             <div className={styles.toolbarItem}>
               <Slider
@@ -361,6 +396,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
               todayColor={showCurrentDateLine ? TODAY_LINE_COLOR : TODAY_LINE_COLOR_HIDDEN}
               TaskListHeader={TaskListHeader}
               TaskListTable={TaskListTable}
+              TooltipContent={PlannerTooltipContent}
               onSelect={handleTaskSelect}
             />
           </ColumnWidthsContext.Provider>

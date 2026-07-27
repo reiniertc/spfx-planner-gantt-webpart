@@ -37,6 +37,10 @@ declare interface IPlannerGanttWebPartStrings {
   ShowZoomControlFieldLabel: string;
   ShowAssigneeFilterFieldLabel: string;
   ShowPrintButtonFieldLabel: string;
+  ShowCompletedFilterControlFieldLabel: string;
+  CompletedTasksToggleLabel: string;
+  CompletedTasksToggleOnText: string;
+  CompletedTasksToggleOffText: string;
   OpenInPlannerLabel: string;
   BucketsGroupName: string;
   LoadingBucketsLabel: string;

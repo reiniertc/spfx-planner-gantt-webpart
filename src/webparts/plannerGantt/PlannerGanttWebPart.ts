@@ -40,6 +40,7 @@ export interface IPlannerGanttWebPartProps {
   showZoomControl: boolean;
   showPrintButton: boolean;
   showAssigneeFilter: boolean;
+  showCompletedFilterControl: boolean;
   bucketFilter?: IBucketFilter;
 }
 
@@ -90,6 +91,7 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         showZoomControl: this.properties.showZoomControl !== false,
         showPrintButton: this.properties.showPrintButton !== false,
         showAssigneeFilter: this.properties.showAssigneeFilter !== false,
+        showCompletedFilterControl: this.properties.showCompletedFilterControl !== false,
         // Shallow-copied so a mutated nested property still produces a new
         // reference for React to notice between property pane changes.
         bucketFilter: this.properties.bucketFilter ? { ...this.properties.bucketFilter } : undefined,
@@ -325,6 +327,10 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showPrintButton', {
             label: strings.ShowPrintButtonFieldLabel,
             checked: this.properties.showPrintButton !== false
+          }),
+          PropertyPaneToggle('showCompletedFilterControl', {
+            label: strings.ShowCompletedFilterControlFieldLabel,
+            checked: this.properties.showCompletedFilterControl !== false
           })
         ]
       }

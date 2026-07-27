@@ -129,10 +129,11 @@ export class PlannerService {
 
     const orderedBuckets: IPlannerBucket[] = buckets.filter(bucket => tasks.some(task => task.bucketId === bucket.id));
     if (options.sortBucketsByStartDate) {
-      // gantt-task-react renders project/phase rows in the reverse of the
-      // array order they're supplied in, so the earliest bucket has to be
-      // last here to end up first (at the top) on screen.
-      orderedBuckets.sort((a, b) => bucketMinStartById[b.id] - bucketMinStartById[a.id]);
+      // gantt-task-react renders rows in exactly the order they're supplied
+      // (verified empirically against the pinned 0.3.8 build - no internal
+      // reversal or resort by date), so ascending here puts the
+      // earliest-starting bucket first, i.e. at the top.
+      orderedBuckets.sort((a, b) => bucketMinStartById[a.id] - bucketMinStartById[b.id]);
     }
 
     orderedBuckets.forEach(bucket => {

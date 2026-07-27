@@ -22,6 +22,19 @@
   min-width: 200px;
 }
 
+.ganttTooltip {
+  background: #fff;
+  color: #323130;
+  padding: 12px;
+  border-radius: 2px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+}
+
+.ganttTooltipLine {
+  margin-top: 4px;
+  color: #666;
+}
+
 // Defensive only: the print button's actual export flow opens a separate
 // popup with just the title + chart (no toolbar) and prints that instead,
 // but if someone prints the page directly (Ctrl+P) this keeps the controls

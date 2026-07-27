@@ -19,6 +19,7 @@ export interface IPlannerGanttProps {
   showZoomControl: boolean;
   showPrintButton: boolean;
   showAssigneeFilter: boolean;
+  showCompletedFilterControl: boolean;
   bucketFilter?: IBucketFilter;
   isDarkTheme: boolean;
   themePrimary: string;
