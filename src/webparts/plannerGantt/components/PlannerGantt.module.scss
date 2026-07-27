@@ -22,6 +22,20 @@
   min-width: 200px;
 }
 
+// Defensive only: the print button's actual export flow opens a separate
+// popup with just the title + chart (no toolbar) and prints that instead,
+// but if someone prints the page directly (Ctrl+P) this keeps the controls
+// out of that output too.
+@media print {
+  .toolbar {
+    display: none;
+  }
+
+  .plannerGantt {
+    overflow: visible;
+  }
+}
+
 // gantt-task-react (pinned to 0.3.8) always renders the task name as SVG
 // text on/next to the bar with no prop to suppress it. These are that
 // version's own compiled CSS-module class names (see dist/index.css) -

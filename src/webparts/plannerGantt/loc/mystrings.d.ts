@@ -4,9 +4,6 @@ declare interface IPlannerGanttWebPartStrings {
   PlanFieldLabel: string;
   DisplayGroupName: string;
   ViewModeFieldLabel: string;
-  ViewModeHour: string;
-  ViewModeQuarterDay: string;
-  ViewModeHalfDay: string;
   ViewModeDay: string;
   ViewModeWeek: string;
   ViewModeMonth: string;
@@ -17,9 +14,13 @@ declare interface IPlannerGanttWebPartStrings {
   ShowTaskNameOnBarFieldLabel: string;
   ShowCurrentDateLineFieldLabel: string;
   ZoomSliderLabel: string;
+  ZoomUnitDay: string;
+  ZoomUnitWeek: string;
+  ZoomUnitMonth: string;
   AssigneeFilterLabel: string;
   AllAssigneesOption: string;
   UnassignedOption: string;
+  PrintButtonLabel: string;
   ColumnsGroupName: string;
   ShowStartDateColumnFieldLabel: string;
   ShowEndDateColumnFieldLabel: string;

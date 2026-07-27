@@ -55,10 +55,21 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   Every visible column (including Name) can be resized by dragging its
   right edge.
 - **Live toolbar above the chart** (viewer-side, not saved to the page):
-  a zoom slider that goes finer than the property pane's Day/Week/Month
-  (down to Hour), and an "Assigned to" filter that hides tasks (and any
-  phase left with nothing under it) that don't match the selected person,
-  including an "Unassigned" option.
+  - A **zoom slider** that controls how many of the chosen time unit
+    (Day/Week/Month, set via the property pane) fit in view at once - drag
+    it to zoom out from e.g. 3 weeks visible to 10+, or zoom in for more
+    detail. This reflows the column width to fit the chart's actual
+    rendered width, it doesn't just switch time units.
+  - An **"Assigned to" filter** that hides tasks (and any phase left with
+    nothing under it) that don't match the selected person, including an
+    "Unassigned" option.
+  - A **Print / export to PDF** button. It opens the chart (title + Gantt,
+    exactly as currently zoomed/filtered) in its own window with none of
+    the page's other chrome, and triggers the browser's print dialog there
+    - pick "Save as PDF" as the destination for an export. Regular Ctrl+P
+    on the page itself also hides the toolbar via print CSS, but will still
+    include whatever else is on the page since that's outside this web
+    part's control.
 - Read-only by design: Planner remains the system of record. The chart does
   not write back to Planner.
 
@@ -116,9 +127,10 @@ gulp serve
    its tasks from the chart entirely.
 6. Save the page. Visitors then see that plan's Gantt chart, scoped to
    whatever Planner tasks they're individually allowed to see, and can each
-   independently use the **zoom slider** and **Assigned to filter** above
-   the chart, and **drag column borders** to resize them, without affecting
-   what anyone else sees or changing the saved page.
+   independently use the **zoom slider**, **Assigned to filter** and
+   **Print / export to PDF** button above the chart, and **drag column
+   borders** to resize them, without affecting what anyone else sees or
+   changing the saved page.
 
 ## Solution architecture
 

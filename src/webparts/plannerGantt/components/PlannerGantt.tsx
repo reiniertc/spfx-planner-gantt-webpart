@@ -5,6 +5,7 @@ import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { Slider } from '@fluentui/react/lib/Slider';
 import { Dropdown, IDropdownOption } from '@fluentui/react/lib/Dropdown';
+import { DefaultButton } from '@fluentui/react/lib/Button';
 
 import styles from './PlannerGantt.module.scss';
 import type { IPlannerGanttProps } from './IPlannerGanttProps';
@@ -15,34 +16,21 @@ import {
 } from './GanttTaskList';
 import * as strings from 'PlannerGanttWebPartStrings';
 
-const COLUMN_WIDTH_BY_VIEW_MODE: Record<string, number> = {
-  Hour: 60,
-  'Quarter Day': 80,
-  'Half Day': 100,
-  Day: 65,
-  Week: 165,
-  Month: 300
+// How many of the chosen time unit (Day/Week/Month) should be visible at
+// once - the slider adjusts this, and columnWidth is derived from it and
+// the chart's actual rendered width, so "zooming out" really does bring
+// more weeks/days/months into view instead of switching time units.
+const MIN_VISIBLE_UNITS: number = 2;
+const MAX_VISIBLE_UNITS: number = 16;
+const MIN_COLUMN_WIDTH_PX: number = 28;
+const FALLBACK_CONTAINER_WIDTH: number = 900;
+
+const DEFAULT_VISIBLE_UNITS: Record<string, number> = {
+  Day: 10,
+  Week: 3,
+  Month: 4
 };
 
-const ZOOM_LEVELS: Array<{ key: keyof typeof ViewMode; label: string }> = [
-  { key: 'Hour', label: strings.ViewModeHour },
-  { key: 'QuarterDay', label: strings.ViewModeQuarterDay },
-  { key: 'HalfDay', label: strings.ViewModeHalfDay },
-  { key: 'Day', label: strings.ViewModeDay },
-  { key: 'Week', label: strings.ViewModeWeek },
-  { key: 'Month', label: strings.ViewModeMonth }
-];
-
-function indexOfZoomLevel(key: string): number {
-  for (let i: number = 0; i < ZOOM_LEVELS.length; i++) {
-    if (ZOOM_LEVELS[i].key === key) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-const DEFAULT_ZOOM_INDEX: number = indexOfZoomLevel('Week');
 const UNASSIGNED_KEY: string = '__unassigned__';
 
 const TODAY_LINE_COLOR: string = 'rgba(232, 17, 35, 0.15)';
@@ -99,9 +87,32 @@ function toGanttTasks(rows: IGanttRow[], colorBarsByStatus: boolean, theme: IThe
   });
 }
 
-function findZoomIndex(viewModeKey: string): number {
-  const index: number = indexOfZoomLevel(viewModeKey);
-  return index === -1 ? DEFAULT_ZOOM_INDEX : index;
+/**
+ * Opens the chart in its own popup window (title + chart only, no toolbar,
+ * no SharePoint page chrome) and triggers the browser's print dialog there,
+ * so "Save as PDF" produces a clean export instead of the whole page.
+ */
+function handlePrintExport(chartElement: HTMLElement | undefined, title: string): void {
+  if (!chartElement) {
+    return;
+  }
+
+  const printWindow: Window | null = window.open('', '_blank');
+  if (!printWindow) {
+    return; // popup blocked - the browser will usually show its own notice
+  }
+
+  printWindow.document.title = title || document.title;
+  printWindow.document.head.innerHTML = document.head.innerHTML;
+  printWindow.document.body.style.margin = '0';
+  printWindow.document.body.appendChild(chartElement.cloneNode(true));
+
+  // Linked stylesheets copied above load asynchronously; give them a moment
+  // before printing so the popup isn't printed unstyled.
+  setTimeout(() => {
+    printWindow.focus();
+    printWindow.print();
+  }, 500);
 }
 
 const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) => {
@@ -119,14 +130,32 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   const [error, setError] = React.useState<string | undefined>(undefined);
 
   // Live, viewer-side controls - not persisted to the web part's properties.
-  const [zoomIndex, setZoomIndex] = React.useState<number>(() => findZoomIndex(viewMode));
+  const [visibleUnits, setVisibleUnits] = React.useState<number>(() => DEFAULT_VISIBLE_UNITS[viewMode] || DEFAULT_VISIBLE_UNITS.Week);
   const [selectedAssignee, setSelectedAssignee] = React.useState<string>('');
   const [columnWidths, setColumnWidths] = React.useState<IColumnWidths>(DEFAULT_COLUMN_WIDTHS);
+  const [containerWidth, setContainerWidth] = React.useState<number>(FALLBACK_CONTAINER_WIDTH);
+  const [chartWrapperEl, setChartWrapperEl] = React.useState<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
-    setZoomIndex(findZoomIndex(viewMode));
+    setVisibleUnits(DEFAULT_VISIBLE_UNITS[viewMode] || DEFAULT_VISIBLE_UNITS.Week);
     setSelectedAssignee('');
   }, [planId, viewMode]);
+
+  // Re-measures whenever the wrapper mounts/unmounts (e.g. switching between
+  // the loading/empty/chart states) and whenever the page resizes it.
+  React.useEffect(() => {
+    if (!chartWrapperEl || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer: ResizeObserver = new ResizeObserver(entries => {
+      const width: number = entries[0].contentRect.width;
+      if (width > 0) {
+        setContainerWidth(width);
+      }
+    });
+    observer.observe(chartWrapperEl);
+    return () => observer.disconnect();
+  }, [chartWrapperEl]);
 
   const setColumnWidth = React.useCallback((column: keyof IColumnWidths, width: number) => {
     setColumnWidths(previous => ({ ...previous, [column]: width }));
@@ -260,23 +289,28 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     );
   }
 
-  const resolvedViewMode: ViewMode = ViewMode[ZOOM_LEVELS[zoomIndex].key];
+  const resolvedViewMode: ViewMode = ViewMode[viewMode as keyof typeof ViewMode] || ViewMode.Week;
+  const columnWidth: number = Math.max(MIN_COLUMN_WIDTH_PX, Math.floor(containerWidth / visibleUnits));
+  const zoomUnitLabel: string = ({
+    Day: strings.ZoomUnitDay,
+    Week: strings.ZoomUnitWeek,
+    Month: strings.ZoomUnitMonth
+  } as Record<string, string>)[viewMode] || strings.ZoomUnitWeek;
   const rootClassName: string = showTaskNameOnBar ? styles.plannerGantt : `${styles.plannerGantt} ${styles.hideBarLabels}`;
 
   return (
     <div className={rootClassName}>
-      <h2 className={styles.planTitle}>{props.planTitle}</h2>
       <div className={styles.toolbar}>
         <div className={styles.toolbarItem}>
           <Slider
             label={strings.ZoomSliderLabel}
-            min={0}
-            max={ZOOM_LEVELS.length - 1}
+            min={MIN_VISIBLE_UNITS}
+            max={MAX_VISIBLE_UNITS}
             step={1}
-            value={zoomIndex}
+            value={visibleUnits}
             showValue={true}
-            valueFormat={(value: number) => ZOOM_LEVELS[value].label}
-            onChange={(value: number) => setZoomIndex(value)}
+            valueFormat={(value: number) => `${value} ${zoomUnitLabel}`}
+            onChange={(value: number) => setVisibleUnits(value)}
           />
         </div>
         <div className={styles.toolbarItem}>
@@ -287,25 +321,35 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
             onChange={(_event, option) => setSelectedAssignee(option ? String(option.key) : '')}
           />
         </div>
-      </div>
-      {visibleRows && visibleRows.length > 0 ? (
-        <ColumnWidthsContext.Provider value={columnWidthsContextValue}>
-          <Gantt
-            tasks={toGanttTasks(visibleRows, colorBarsByStatus, { primary: themePrimary, secondary: themeSecondary, grey: themeGrey })}
-            viewMode={resolvedViewMode}
-            columnWidth={COLUMN_WIDTH_BY_VIEW_MODE[resolvedViewMode] || COLUMN_WIDTH_BY_VIEW_MODE.Week}
-            listCellWidth="220px"
-            rowHeight={42}
-            ganttHeight={520}
-            locale={navigator.language}
-            todayColor={showCurrentDateLine ? TODAY_LINE_COLOR : TODAY_LINE_COLOR_HIDDEN}
-            TaskListHeader={TaskListHeader}
-            TaskListTable={TaskListTable}
+        <div className={styles.toolbarItem}>
+          <DefaultButton
+            text={strings.PrintButtonLabel}
+            iconProps={{ iconName: 'Print' }}
+            onClick={() => handlePrintExport(chartWrapperEl || undefined, props.planTitle)}
           />
-        </ColumnWidthsContext.Provider>
-      ) : (
-        <MessageBar messageBarType={MessageBarType.warning}>{strings.NoTasksMatchFilterLabel}</MessageBar>
-      )}
+        </div>
+      </div>
+      <div ref={setChartWrapperEl}>
+        <h2 className={styles.planTitle}>{props.planTitle}</h2>
+        {visibleRows && visibleRows.length > 0 ? (
+          <ColumnWidthsContext.Provider value={columnWidthsContextValue}>
+            <Gantt
+              tasks={toGanttTasks(visibleRows, colorBarsByStatus, { primary: themePrimary, secondary: themeSecondary, grey: themeGrey })}
+              viewMode={resolvedViewMode}
+              columnWidth={columnWidth}
+              listCellWidth="220px"
+              rowHeight={42}
+              ganttHeight={520}
+              locale={navigator.language}
+              todayColor={showCurrentDateLine ? TODAY_LINE_COLOR : TODAY_LINE_COLOR_HIDDEN}
+              TaskListHeader={TaskListHeader}
+              TaskListTable={TaskListTable}
+            />
+          </ColumnWidthsContext.Provider>
+        ) : (
+          <MessageBar messageBarType={MessageBarType.warning}>{strings.NoTasksMatchFilterLabel}</MessageBar>
+        )}
+      </div>
     </div>
   );
 };
