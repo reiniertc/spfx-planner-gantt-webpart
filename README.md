@@ -46,9 +46,19 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   progress, and grey for done. Can be turned off to use the chart's
   default single-color bars.
 - **Today indicator.** Today's column is highlighted; can be turned off.
+- **Show task name on bars (toggle).** Turn off to remove the name label
+  from the bars themselves (the task list on the left still always shows
+  the full name).
 - **Optional columns** in the task list next to the chart: start date, due
   date, and who a task is assigned to (assignee names are resolved from
   Planner's assignee user ids via a single batched Graph call per load).
+  Every visible column (including Name) can be resized by dragging its
+  right edge.
+- **Live toolbar above the chart** (viewer-side, not saved to the page):
+  a zoom slider that goes finer than the property pane's Day/Week/Month
+  (down to Hour), and an "Assigned to" filter that hides tasks (and any
+  phase left with nothing under it) that don't match the selected person,
+  including an "Unassigned" option.
 - Read-only by design: Planner remains the system of record. The chart does
   not write back to Planner.
 
@@ -98,13 +108,17 @@ gulp serve
    plan from every Microsoft 365 group you belong to).
 3. Optionally adjust, under **Display**: **Zoom level**, **Show completed
    tasks**, **Show buckets as phases**, **Sort tasks by start date**,
-   **Color bars by status**, and **Highlight today's date**.
+   **Color bars by status**, **Show task name on bars**, and **Highlight
+   today's date**.
 4. Under **Columns**, toggle the **Start date**, **Due date** and **Assigned
    to** columns next to the chart.
 5. Under **Buckets to show**, uncheck a bucket (e.g. Backlog) to hide it and
    its tasks from the chart entirely.
-6. Save the page — all visitors now see that plan's Gantt chart, scoped to
-   whatever Planner tasks they're individually allowed to see.
+6. Save the page. Visitors then see that plan's Gantt chart, scoped to
+   whatever Planner tasks they're individually allowed to see, and can each
+   independently use the **zoom slider** and **Assigned to filter** above
+   the chart, and **drag column borders** to resize them, without affecting
+   what anyone else sees or changing the saved page.
 
 ## Solution architecture
 
@@ -115,8 +129,11 @@ gulp serve
 - `src/webparts/plannerGantt/components/PlannerGantt.tsx` — React component
   that fetches the selected plan's tasks and renders `gantt-task-react`.
 - `src/webparts/plannerGantt/components/GanttTaskList.tsx` — custom task
-  list header/table so the start/due/assignee columns can be toggled
-  (`gantt-task-react`'s built-in table only ever shows name/from/to).
+  list header/table so the start/due/assignee columns can be toggled and
+  resized (`gantt-task-react`'s built-in table only ever shows name/from/to
+  at a single fixed width). Column widths live in a small React Context
+  since the header and body are separate component instances gantt-task-react
+  renders independently.
 - `src/webparts/plannerGantt/models/IPlannerModels.ts` — shared TypeScript
   interfaces for plans, buckets, tasks and Gantt rows.
 
@@ -133,6 +150,13 @@ gulp serve
   support doesn't exist upstream; adding one would mean switching to a
   different charting library. Open an issue/PR if that's a hard
   requirement for your use case.
+- **The on-bar task name can only be shown or hidden, not aligned.**
+  `gantt-task-react` centers the label inside the bar if it fits, otherwise
+  pushes it just outside to the right — that x-position is computed
+  internally and isn't exposed as a prop, so left/center/right alignment
+  of that specific label isn't achievable without forking the library.
+  Same underlying cause as the Year-zoom gap above: it would take
+  switching (or patching) the charting library to unlock.
 
 ## Disclaimer
 

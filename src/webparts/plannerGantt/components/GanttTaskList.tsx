@@ -5,7 +5,7 @@ import styles from './PlannerGantt.module.scss';
 
 /** Extra data gantt-task-react's own Task type has no slot for. */
 export interface IGanttChartTask extends GanttTask {
-  assigneeNames?: string;
+  assignees?: string[];
 }
 
 export interface IColumnVisibility {
@@ -14,9 +14,33 @@ export interface IColumnVisibility {
   showAssignee: boolean;
 }
 
-const NAME_COLUMN_WIDTH: string = '220px';
-const DATE_COLUMN_WIDTH: string = '100px';
-const ASSIGNEE_COLUMN_WIDTH: string = '160px';
+export interface IColumnWidths {
+  name: number;
+  start: number;
+  end: number;
+  assignee: number;
+}
+
+export const DEFAULT_COLUMN_WIDTHS: IColumnWidths = { name: 220, start: 100, end: 100, assignee: 160 };
+
+const MIN_COLUMN_WIDTH: number = 60;
+
+export interface IColumnWidthsContextValue {
+  widths: IColumnWidths;
+  setColumnWidth: (column: keyof IColumnWidths, width: number) => void;
+}
+
+/**
+ * Shared between the header and body components gantt-task-react renders
+ * for us: they're separate component instances with no direct link to each
+ * other, so a plain prop can't keep their column widths in sync. Context
+ * works because both are still rendered inside our own React tree (Gantt
+ * doesn't portal them elsewhere).
+ */
+export const ColumnWidthsContext: React.Context<IColumnWidthsContextValue> = React.createContext<IColumnWidthsContextValue>({
+  widths: DEFAULT_COLUMN_WIDTHS,
+  setColumnWidth: () => { /* no provider mounted */ }
+});
 
 interface ITaskListHeaderProps {
   headerHeight: number;
@@ -45,19 +69,60 @@ function expanderSymbol(task: GanttTask): string {
   return '';
 }
 
+const ResizeHandle: React.FC<{ column: keyof IColumnWidths }> = ({ column }) => {
+  const { widths, setColumnWidth } = React.useContext(ColumnWidthsContext);
+  const dragStateRef = React.useRef<{ startX: number; startWidth: number } | undefined>(undefined);
+
+  const onMouseMove = React.useCallback((event: MouseEvent) => {
+    if (!dragStateRef.current) {
+      return;
+    }
+    const delta: number = event.clientX - dragStateRef.current.startX;
+    setColumnWidth(column, Math.max(MIN_COLUMN_WIDTH, dragStateRef.current.startWidth + delta));
+  }, [column, setColumnWidth]);
+
+  const onMouseUp = React.useCallback(() => {
+    dragStateRef.current = undefined;
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+  }, [onMouseMove]);
+
+  const onMouseDown = (event: React.MouseEvent): void => {
+    event.preventDefault();
+    dragStateRef.current = { startX: event.clientX, startWidth: widths[column] };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  return <span className={styles.ganttTableResizeHandle} onMouseDown={onMouseDown} />;
+};
+
 export function createTaskListHeader(columns: IColumnVisibility): React.FC<ITaskListHeaderProps> {
   return function TaskListHeader(props: ITaskListHeaderProps): React.ReactElement {
+    const { widths } = React.useContext(ColumnWidthsContext);
     return (
       <div className={styles.ganttTableHeader} style={{ height: props.headerHeight - 2, fontFamily: props.fontFamily, fontSize: props.fontSize }}>
-        <div className={styles.ganttTableHeaderCell} style={{ width: NAME_COLUMN_WIDTH }}>{strings.ColumnNameHeader}</div>
+        <div className={styles.ganttTableHeaderCell} style={{ width: widths.name }}>
+          {strings.ColumnNameHeader}
+          <ResizeHandle column="name" />
+        </div>
         {columns.showStartDate && (
-          <div className={styles.ganttTableHeaderCell} style={{ width: DATE_COLUMN_WIDTH }}>{strings.ColumnStartHeader}</div>
+          <div className={styles.ganttTableHeaderCell} style={{ width: widths.start }}>
+            {strings.ColumnStartHeader}
+            <ResizeHandle column="start" />
+          </div>
         )}
         {columns.showEndDate && (
-          <div className={styles.ganttTableHeaderCell} style={{ width: DATE_COLUMN_WIDTH }}>{strings.ColumnEndHeader}</div>
+          <div className={styles.ganttTableHeaderCell} style={{ width: widths.end }}>
+            {strings.ColumnEndHeader}
+            <ResizeHandle column="end" />
+          </div>
         )}
         {columns.showAssignee && (
-          <div className={styles.ganttTableHeaderCell} style={{ width: ASSIGNEE_COLUMN_WIDTH }}>{strings.ColumnAssigneeHeader}</div>
+          <div className={styles.ganttTableHeaderCell} style={{ width: widths.assignee }}>
+            {strings.ColumnAssigneeHeader}
+            <ResizeHandle column="assignee" />
+          </div>
         )}
       </div>
     );
@@ -66,15 +131,18 @@ export function createTaskListHeader(columns: IColumnVisibility): React.FC<ITask
 
 export function createTaskListTable(columns: IColumnVisibility): React.FC<ITaskListTableProps> {
   return function TaskListTable(props: ITaskListTableProps): React.ReactElement {
+    const { widths } = React.useContext(ColumnWidthsContext);
+
     return (
       <div style={{ fontFamily: props.fontFamily, fontSize: props.fontSize }}>
         {props.tasks.map(task => {
           const chartTask: IGanttChartTask = task as IGanttChartTask;
           const isPhase: boolean = task.type === 'project';
           const isPhaseChild: boolean = !!task.project;
+          const assigneeText: string = (chartTask.assignees || []).join(', ');
           return (
             <div className={styles.ganttTableRow} style={{ height: props.rowHeight }} key={`${task.id}-row`}>
-              <div className={styles.ganttTableCell} style={{ width: NAME_COLUMN_WIDTH }} title={task.name}>
+              <div className={styles.ganttTableCell} style={{ width: widths.name }} title={task.name}>
                 <span
                   className={expanderSymbol(task) ? styles.ganttTableExpander : styles.ganttTableExpanderEmpty}
                   onClick={() => props.onExpanderClick(task)}
@@ -89,18 +157,18 @@ export function createTaskListTable(columns: IColumnVisibility): React.FC<ITaskL
                 </span>
               </div>
               {columns.showStartDate && (
-                <div className={styles.ganttTableCell} style={{ width: DATE_COLUMN_WIDTH }}>
+                <div className={styles.ganttTableCell} style={{ width: widths.start }}>
                   {task.start.toLocaleDateString(props.locale)}
                 </div>
               )}
               {columns.showEndDate && (
-                <div className={styles.ganttTableCell} style={{ width: DATE_COLUMN_WIDTH }}>
+                <div className={styles.ganttTableCell} style={{ width: widths.end }}>
                   {task.end.toLocaleDateString(props.locale)}
                 </div>
               )}
               {columns.showAssignee && (
-                <div className={styles.ganttTableCell} style={{ width: ASSIGNEE_COLUMN_WIDTH }} title={chartTask.assigneeNames || ''}>
-                  {chartTask.assigneeNames || '–'}
+                <div className={styles.ganttTableCell} style={{ width: widths.assignee }} title={assigneeText}>
+                  {assigneeText || '–'}
                 </div>
               )}
             </div>

@@ -5,6 +5,9 @@ define([], function() {
     "PlanFieldLabel": "Plan",
     "DisplayGroupName": "Display",
     "ViewModeFieldLabel": "Zoom level",
+    "ViewModeHour": "Hour",
+    "ViewModeQuarterDay": "6 hours",
+    "ViewModeHalfDay": "12 hours",
     "ViewModeDay": "Day",
     "ViewModeWeek": "Week",
     "ViewModeMonth": "Month",
@@ -12,7 +15,12 @@ define([], function() {
     "ShowBucketsAsPhasesFieldLabel": "Show buckets as phases",
     "SortTasksByStartDateFieldLabel": "Sort tasks by start date",
     "ColorBarsByStatusFieldLabel": "Color bars by status (not started / in progress / done)",
+    "ShowTaskNameOnBarFieldLabel": "Show task name on bars",
     "ShowCurrentDateLineFieldLabel": "Highlight today's date",
+    "ZoomSliderLabel": "Zoom",
+    "AssigneeFilterLabel": "Assigned to",
+    "AllAssigneesOption": "Everyone",
+    "UnassignedOption": "Unassigned",
     "ColumnsGroupName": "Columns",
     "ShowStartDateColumnFieldLabel": "Start date",
     "ShowEndDateColumnFieldLabel": "Due date",
@@ -30,6 +38,7 @@ define([], function() {
     "NoPlanSelectedLabel": "Edit this web part and choose a Planner plan to display.",
     "LoadingTasksLabel": "Loading tasks...",
     "ErrorLoadingTasksLabel": "Couldn't load tasks for this plan.",
-    "NoTasksFoundLabel": "This plan has no tasks to display yet."
+    "NoTasksFoundLabel": "This plan has no tasks to display yet.",
+    "NoTasksMatchFilterLabel": "No tasks are assigned to this person in the current view."
   }
 });

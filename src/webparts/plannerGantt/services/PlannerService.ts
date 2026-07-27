@@ -196,10 +196,9 @@ export class PlannerService {
   ): IGanttRow {
     const start: Date = this.getEffectiveStart(task);
     const project: string | undefined = showBucketsAsPhases ? bucketId : undefined;
-    const assigneeNames: string = task.assigneeIds
+    const assignees: string[] = task.assigneeIds
       .map(id => assigneeNameById[id])
-      .filter(name => !!name)
-      .join(', ');
+      .filter(name => !!name);
 
     // A Planner task with no due date has nothing to draw a bar between,
     // so it's rendered as a milestone at its start date instead.
@@ -213,7 +212,7 @@ export class PlannerService {
         type: 'milestone',
         project,
         bucketName: '',
-        assigneeNames
+        assignees
       };
     }
 
@@ -231,7 +230,7 @@ export class PlannerService {
       type: 'task',
       project,
       bucketName: '',
-      assigneeNames
+      assignees
     };
   }
 
@@ -247,7 +246,7 @@ export class PlannerService {
       progress: Math.round(taskRows.reduce((sum, row) => sum + row.progress, 0) / taskRows.length),
       type: 'project',
       bucketName,
-      assigneeNames: ''
+      assignees: []
     };
   }
 }

@@ -29,6 +29,7 @@ export interface IPlannerGanttWebPartProps {
   showBucketsAsPhases: boolean;
   colorBarsByStatus: boolean;
   sortTasksByStartDate: boolean;
+  showTaskNameOnBar: boolean;
   showCurrentDateLine: boolean;
   showStartDateColumn: boolean;
   showEndDateColumn: boolean;
@@ -71,6 +72,7 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         showBucketsAsPhases: this.properties.showBucketsAsPhases !== false,
         colorBarsByStatus: this.properties.colorBarsByStatus !== false,
         sortTasksByStartDate: !!this.properties.sortTasksByStartDate,
+        showTaskNameOnBar: this.properties.showTaskNameOnBar !== false,
         showCurrentDateLine: this.properties.showCurrentDateLine !== false,
         showStartDateColumn: this.properties.showStartDateColumn !== false,
         showEndDateColumn: this.properties.showEndDateColumn !== false,
@@ -255,6 +257,10 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('colorBarsByStatus', {
             label: strings.ColorBarsByStatusFieldLabel,
             checked: this.properties.colorBarsByStatus !== false
+          }),
+          PropertyPaneToggle('showTaskNameOnBar', {
+            label: strings.ShowTaskNameOnBarFieldLabel,
+            checked: this.properties.showTaskNameOnBar !== false
           }),
           PropertyPaneToggle('showCurrentDateLine', {
             label: strings.ShowCurrentDateLineFieldLabel,

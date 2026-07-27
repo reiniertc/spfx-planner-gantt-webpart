@@ -48,6 +48,6 @@ export interface IGanttRow {
   type: 'task' | 'project' | 'milestone';
   project?: string;
   bucketName: string;
-  /** Comma-separated display names, resolved via Graph. Empty string when unassigned. */
-  assigneeNames: string;
+  /** Display names, resolved via Graph. Empty array when unassigned. */
+  assignees: string[];
 }

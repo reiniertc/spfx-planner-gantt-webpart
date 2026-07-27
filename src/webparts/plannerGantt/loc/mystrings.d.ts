@@ -4,6 +4,9 @@ declare interface IPlannerGanttWebPartStrings {
   PlanFieldLabel: string;
   DisplayGroupName: string;
   ViewModeFieldLabel: string;
+  ViewModeHour: string;
+  ViewModeQuarterDay: string;
+  ViewModeHalfDay: string;
   ViewModeDay: string;
   ViewModeWeek: string;
   ViewModeMonth: string;
@@ -11,7 +14,12 @@ declare interface IPlannerGanttWebPartStrings {
   ShowBucketsAsPhasesFieldLabel: string;
   SortTasksByStartDateFieldLabel: string;
   ColorBarsByStatusFieldLabel: string;
+  ShowTaskNameOnBarFieldLabel: string;
   ShowCurrentDateLineFieldLabel: string;
+  ZoomSliderLabel: string;
+  AssigneeFilterLabel: string;
+  AllAssigneesOption: string;
+  UnassignedOption: string;
   ColumnsGroupName: string;
   ShowStartDateColumnFieldLabel: string;
   ShowEndDateColumnFieldLabel: string;
@@ -30,6 +38,7 @@ declare interface IPlannerGanttWebPartStrings {
   LoadingTasksLabel: string;
   ErrorLoadingTasksLabel: string;
   NoTasksFoundLabel: string;
+  NoTasksMatchFilterLabel: string;
 }
 
 declare module 'PlannerGanttWebPartStrings' {

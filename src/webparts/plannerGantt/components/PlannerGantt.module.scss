@@ -10,6 +10,27 @@
   font-weight: 600;
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 2em;
+  margin-bottom: 1em;
+}
+
+.toolbarItem {
+  min-width: 200px;
+}
+
+// gantt-task-react (pinned to 0.3.8) always renders the task name as SVG
+// text on/next to the bar with no prop to suppress it. These are that
+// version's own compiled CSS-module class names (see dist/index.css) -
+// re-check them if the pinned version ever changes.
+.hideBarLabels :global(._3zRJQ),
+.hideBarLabels :global(._3KcaM) {
+  display: none;
+}
+
 .ganttTableHeader {
   display: flex;
   border-bottom: #e6e4e4 1px solid;
@@ -20,12 +41,28 @@
 }
 
 .ganttTableHeaderCell {
+  position: relative;
   padding: 0 0.5em;
   font-weight: 600;
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.ganttTableResizeHandle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  user-select: none;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.15);
+  }
 }
 
 .ganttTableRow {
@@ -39,6 +76,7 @@
 }
 
 .ganttTableCell {
+  box-sizing: border-box;
   padding: 0 0.5em;
   flex-shrink: 0;
   overflow: hidden;
