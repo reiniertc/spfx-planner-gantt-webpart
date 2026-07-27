@@ -9,7 +9,8 @@ declare interface IPlannerGanttWebPartStrings {
   ViewModeMonth: string;
   ShowCompletedFieldLabel: string;
   ShowBucketsAsPhasesFieldLabel: string;
-  ShowProgressOnBarFieldLabel: string;
+  SortTasksByStartDateFieldLabel: string;
+  ColorBarsByStatusFieldLabel: string;
   ShowCurrentDateLineFieldLabel: string;
   ColumnsGroupName: string;
   ShowStartDateColumnFieldLabel: string;

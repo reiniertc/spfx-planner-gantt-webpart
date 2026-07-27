@@ -70,6 +70,8 @@ export function createTaskListTable(columns: IColumnVisibility): React.FC<ITaskL
       <div style={{ fontFamily: props.fontFamily, fontSize: props.fontSize }}>
         {props.tasks.map(task => {
           const chartTask: IGanttChartTask = task as IGanttChartTask;
+          const isPhase: boolean = task.type === 'project';
+          const isPhaseChild: boolean = !!task.project;
           return (
             <div className={styles.ganttTableRow} style={{ height: props.rowHeight }} key={`${task.id}-row`}>
               <div className={styles.ganttTableCell} style={{ width: NAME_COLUMN_WIDTH }} title={task.name}>
@@ -79,7 +81,12 @@ export function createTaskListTable(columns: IColumnVisibility): React.FC<ITaskL
                 >
                   {expanderSymbol(task)}
                 </span>
-                <span>{task.name}</span>
+                <span
+                  className={isPhase ? styles.ganttTablePhaseName : undefined}
+                  style={isPhaseChild ? { paddingLeft: '1.2em' } : undefined}
+                >
+                  {task.name}
+                </span>
               </div>
               {columns.showStartDate && (
                 <div className={styles.ganttTableCell} style={{ width: DATE_COLUMN_WIDTH }}>

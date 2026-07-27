@@ -19,25 +19,58 @@ const COLUMN_WIDTH_BY_VIEW_MODE: Record<string, number> = {
 const TODAY_LINE_COLOR: string = 'rgba(232, 17, 35, 0.15)';
 const TODAY_LINE_COLOR_HIDDEN: string = 'transparent';
 
-function toGanttTasks(rows: IGanttRow[], showProgressOnBar: boolean): IGanttChartTask[] {
-  return rows.map(row => ({
-    id: row.id,
-    name: showProgressOnBar && row.type !== 'milestone' ? `${row.name} (${row.progress}%)` : row.name,
-    start: row.start,
-    end: row.end,
-    progress: row.progress,
-    type: row.type,
-    project: row.project,
-    assigneeNames: row.assigneeNames,
-    isDisabled: true // Planner is the system of record; the chart is read-only.
-  }));
+interface IThemeColors {
+  primary: string;
+  secondary: string;
+  grey: string;
+}
+
+/**
+ * Planner only has three real progress states (0 / 50 / 100 - not started,
+ * in progress, done), so a numeric percentage on the bar is more noise than
+ * signal. Colour-coding the whole bar by status reads better in practice.
+ */
+function colorForStatus(progress: number, theme: IThemeColors): string {
+  if (progress >= 100) {
+    return theme.grey;
+  }
+  if (progress <= 0) {
+    return theme.secondary;
+  }
+  return theme.primary;
+}
+
+function toGanttTasks(rows: IGanttRow[], colorBarsByStatus: boolean, theme: IThemeColors): IGanttChartTask[] {
+  return rows.map(row => {
+    const statusColor: string | undefined = colorBarsByStatus ? colorForStatus(row.progress, theme) : undefined;
+
+    return {
+      id: row.id,
+      name: row.name,
+      start: row.start,
+      end: row.end,
+      progress: row.progress,
+      type: row.type,
+      project: row.project,
+      assigneeNames: row.assigneeNames,
+      isDisabled: true, // Planner is the system of record; the chart is read-only.
+      styles: statusColor
+        ? {
+          backgroundColor: statusColor,
+          backgroundSelectedColor: statusColor,
+          progressColor: statusColor,
+          progressSelectedColor: statusColor
+        }
+        : undefined
+    };
+  });
 }
 
 const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) => {
   const {
-    planId, viewMode, showCompletedTasks, showBucketsAsPhases, showProgressOnBar,
+    planId, viewMode, showCompletedTasks, showBucketsAsPhases, colorBarsByStatus, sortTasksByStartDate,
     showCurrentDateLine, showStartDateColumn, showEndDateColumn, showAssigneeColumn,
-    bucketFilter, plannerService
+    bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
@@ -62,6 +95,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
       .getGanttRows(planId, {
         includeCompleted: showCompletedTasks,
         showBucketsAsPhases,
+        sortByStartDate: sortTasksByStartDate,
         bucketFilter
       })
       .then(result => {
@@ -81,7 +115,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
       isCancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planId, showCompletedTasks, showBucketsAsPhases, bucketFilterKey, plannerService]);
+  }, [planId, showCompletedTasks, showBucketsAsPhases, sortTasksByStartDate, bucketFilterKey, plannerService]);
 
   const columns = React.useMemo(() => ({
     showStartDate: showStartDateColumn,
@@ -130,7 +164,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     <div className={styles.plannerGantt}>
       <h2 className={styles.planTitle}>{props.planTitle}</h2>
       <Gantt
-        tasks={toGanttTasks(rows, showProgressOnBar)}
+        tasks={toGanttTasks(rows, colorBarsByStatus, { primary: themePrimary, secondary: themeSecondary, grey: themeGrey })}
         viewMode={resolvedViewMode}
         columnWidth={COLUMN_WIDTH_BY_VIEW_MODE[viewMode] || COLUMN_WIDTH_BY_VIEW_MODE.Week}
         listCellWidth="220px"

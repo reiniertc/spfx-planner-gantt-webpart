@@ -25,19 +25,26 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   discover them).
 - **Gantt chart rendering** via [`gantt-task-react`](https://github.com/MaTeMaTuK/gantt-task-react).
 - **Buckets as phases (toggle).** When on (default), each Planner bucket is
-  shown as a phase bar spanning from the earliest start date to the latest
-  end date of its tasks, labeled with the bucket's name. Turn it off to see
-  a flat task list without the phase bars.
+  shown as a bold phase bar spanning from the earliest start date to the
+  latest end date of its tasks, labeled with the bucket's name; its tasks
+  are indented underneath it in the task list. Turn it off to see a flat
+  task list without the phase bars.
 - **Bucket filter.** A checkbox per bucket in the property pane controls
   which buckets are shown at all, so a bucket like "Backlog" can be hidden
   from the chart entirely (its tasks are excluded, not just the phase bar).
+- **Sort tasks by start date (toggle).** Off by default, which keeps each
+  bucket's tasks in Planner's own (manual/drag-and-drop) order. On sorts
+  each bucket's tasks by start date instead.
 - Tasks with a due date but no start date fall back to their creation date;
   tasks with no due date at all are rendered as milestones instead of bars.
 - Zoom level (Day / Week / Month) and a "show completed tasks" toggle,
   configurable per web part instance from the property pane.
-- **Progress on the bar.** Optionally bakes each task's percent-complete
-  into its label (e.g. "Design homepage (60%)"), since the underlying
-  charting library doesn't have a separate on-bar text slot.
+- **Color bars by status.** Planner only has three real progress states
+  (not started / in progress / done - 0%, 50%, 100%), so instead of a
+  numeric percentage the whole bar is colored by status: the site's
+  secondary theme color for not-started, primary theme color for in
+  progress, and grey for done. Can be turned off to use the chart's
+  default single-color bars.
 - **Today indicator.** Today's column is highlighted; can be turned off.
 - **Optional columns** in the task list next to the chart: start date, due
   date, and who a task is assigned to (assignee names are resolved from
@@ -90,8 +97,8 @@ gulp serve
 2. In the property pane, pick a **Plan** from the dropdown (it lists every
    plan from every Microsoft 365 group you belong to).
 3. Optionally adjust, under **Display**: **Zoom level**, **Show completed
-   tasks**, **Show buckets as phases**, **Show progress percentage on
-   bars**, and **Highlight today's date**.
+   tasks**, **Show buckets as phases**, **Sort tasks by start date**,
+   **Color bars by status**, and **Highlight today's date**.
 4. Under **Columns**, toggle the **Start date**, **Due date** and **Assigned
    to** columns next to the chart.
 5. Under **Buckets to show**, uncheck a bucket (e.g. Backlog) to hide it and

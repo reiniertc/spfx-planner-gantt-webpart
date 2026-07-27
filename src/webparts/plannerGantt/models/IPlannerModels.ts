@@ -24,6 +24,7 @@ export interface IPlannerTask {
   id: string;
   title: string;
   bucketId: string;
+  orderHint: string;
   percentComplete: number;
   priority: number;
   startDateTime?: string;

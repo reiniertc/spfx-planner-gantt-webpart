@@ -14,6 +14,8 @@ export interface IGanttRowOptions {
   showBucketsAsPhases: boolean;
   /** Bucket id -> whether to include it. A bucket missing from the map is included by default. */
   bucketFilter?: IBucketFilter;
+  /** When true, tasks within each bucket are ordered by start date instead of their Planner (manual) order. */
+  sortByStartDate: boolean;
 }
 
 /**
@@ -78,7 +80,7 @@ export class PlannerService {
       this.getBuckets(planId),
       client
         .api(`/planner/plans/${planId}/tasks`)
-        .select('id,title,bucketId,percentComplete,priority,startDateTime,dueDateTime,createdDateTime,completedDateTime,assignments')
+        .select('id,title,bucketId,orderHint,percentComplete,priority,startDateTime,dueDateTime,createdDateTime,completedDateTime,assignments')
         .get()
     ]);
 
@@ -94,13 +96,14 @@ export class PlannerService {
       .filter((task: { completedDateTime?: string }) => options.includeCompleted || !task.completedDateTime)
       .filter((task: { bucketId: string }) => isBucketVisible(task.bucketId))
       .map((task: {
-        id: string; title: string; bucketId: string; percentComplete: number; priority: number;
+        id: string; title: string; bucketId: string; orderHint: string; percentComplete: number; priority: number;
         startDateTime?: string; dueDateTime?: string; createdDateTime: string; completedDateTime?: string;
         assignments?: Record<string, unknown>;
       }) => ({
         id: task.id,
         title: task.title || '(Untitled task)',
         bucketId: task.bucketId,
+        orderHint: task.orderHint,
         percentComplete: task.percentComplete,
         priority: task.priority,
         startDateTime: task.startDateTime,
@@ -117,7 +120,9 @@ export class PlannerService {
     buckets
       .filter(bucket => tasks.some(task => task.bucketId === bucket.id))
       .forEach(bucket => {
-        const bucketTasks: IPlannerTask[] = tasks.filter(task => task.bucketId === bucket.id);
+        const bucketTasks: IPlannerTask[] = tasks
+          .filter(task => task.bucketId === bucket.id)
+          .sort((a, b) => this.compareTasks(a, b, options.sortByStartDate));
         const taskRows: IGanttRow[] = bucketTasks.map(task =>
           this.toGanttRow(task, bucket.id, options.showBucketsAsPhases, assigneeNameById));
 
@@ -128,7 +133,9 @@ export class PlannerService {
       });
 
     // Tasks whose bucket no longer resolves (rare, but Graph doesn't guarantee referential integrity on read).
-    const orphanTasks: IPlannerTask[] = tasks.filter(task => !bucketNameById[task.bucketId]);
+    const orphanTasks: IPlannerTask[] = tasks
+      .filter(task => !bucketNameById[task.bucketId])
+      .sort((a, b) => this.compareTasks(a, b, options.sortByStartDate));
     if (orphanTasks.length > 0) {
       const orphanRows: IGanttRow[] = orphanTasks.map(task =>
         this.toGanttRow(task, 'unbucketed', options.showBucketsAsPhases, assigneeNameById));
@@ -170,14 +177,24 @@ export class PlannerService {
     }
   }
 
+  private compareTasks(a: IPlannerTask, b: IPlannerTask, sortByStartDate: boolean): number {
+    if (sortByStartDate) {
+      return this.getEffectiveStart(a).getTime() - this.getEffectiveStart(b).getTime();
+    }
+    return a.orderHint.localeCompare(b.orderHint);
+  }
+
+  private getEffectiveStart(task: IPlannerTask): Date {
+    return new Date(task.startDateTime || task.createdDateTime);
+  }
+
   private toGanttRow(
     task: IPlannerTask,
     bucketId: string,
     showBucketsAsPhases: boolean,
     assigneeNameById: Record<string, string>
   ): IGanttRow {
-    const created: Date = new Date(task.createdDateTime);
-    const start: Date = task.startDateTime ? new Date(task.startDateTime) : created;
+    const start: Date = this.getEffectiveStart(task);
     const project: string | undefined = showBucketsAsPhases ? bucketId : undefined;
     const assigneeNames: string = task.assigneeIds
       .map(id => assigneeNameById[id])

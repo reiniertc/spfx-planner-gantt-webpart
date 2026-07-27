@@ -27,7 +27,8 @@ export interface IPlannerGanttWebPartProps {
   viewMode: string;
   showCompletedTasks: boolean;
   showBucketsAsPhases: boolean;
-  showProgressOnBar: boolean;
+  colorBarsByStatus: boolean;
+  sortTasksByStartDate: boolean;
   showCurrentDateLine: boolean;
   showStartDateColumn: boolean;
   showEndDateColumn: boolean;
@@ -37,11 +38,19 @@ export interface IPlannerGanttWebPartProps {
 
 const NO_PLAN_SELECTED: string = '';
 
+// Fluent UI's default theme, used until the host page reports its own via onThemeChanged.
+const DEFAULT_THEME_PRIMARY: string = '#0078d4';
+const DEFAULT_THEME_SECONDARY: string = '#2b88d8';
+const DEFAULT_THEME_GREY: string = '#a19f9d';
+
 type LoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerGanttWebPartProps> {
 
   private _isDarkTheme: boolean = false;
+  private _themePrimary: string = DEFAULT_THEME_PRIMARY;
+  private _themeSecondary: string = DEFAULT_THEME_SECONDARY;
+  private _themeGrey: string = DEFAULT_THEME_GREY;
   private _plannerService: PlannerService;
 
   private _planOptions: IPropertyPaneDropdownOption[] = [];
@@ -60,7 +69,8 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         viewMode: this.properties.viewMode || 'Week',
         showCompletedTasks: !!this.properties.showCompletedTasks,
         showBucketsAsPhases: this.properties.showBucketsAsPhases !== false,
-        showProgressOnBar: this.properties.showProgressOnBar !== false,
+        colorBarsByStatus: this.properties.colorBarsByStatus !== false,
+        sortTasksByStartDate: !!this.properties.sortTasksByStartDate,
         showCurrentDateLine: this.properties.showCurrentDateLine !== false,
         showStartDateColumn: this.properties.showStartDateColumn !== false,
         showEndDateColumn: this.properties.showEndDateColumn !== false,
@@ -69,6 +79,9 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         // reference for React to notice between property pane changes.
         bucketFilter: this.properties.bucketFilter ? { ...this.properties.bucketFilter } : undefined,
         isDarkTheme: this._isDarkTheme,
+        themePrimary: this._themePrimary,
+        themeSecondary: this._themeSecondary,
+        themeGrey: this._themeGrey,
         plannerService: this._plannerService
       }
     );
@@ -89,12 +102,18 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
     }
 
     this._isDarkTheme = !!currentTheme.isInverted;
-    const { semanticColors } = currentTheme;
+    const { semanticColors, palette } = currentTheme;
 
     if (semanticColors) {
       this.domElement.style.setProperty('--bodyText', semanticColors.bodyText || null);
       this.domElement.style.setProperty('--link', semanticColors.link || null);
       this.domElement.style.setProperty('--linkHovered', semanticColors.linkHovered || null);
+    }
+
+    if (palette) {
+      this._themePrimary = palette.themePrimary || DEFAULT_THEME_PRIMARY;
+      this._themeSecondary = palette.themeSecondary || DEFAULT_THEME_SECONDARY;
+      this._themeGrey = palette.neutralTertiary || DEFAULT_THEME_GREY;
     }
   }
 
@@ -229,9 +248,13 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
             label: strings.ShowBucketsAsPhasesFieldLabel,
             checked: this.properties.showBucketsAsPhases !== false
           }),
-          PropertyPaneToggle('showProgressOnBar', {
-            label: strings.ShowProgressOnBarFieldLabel,
-            checked: this.properties.showProgressOnBar !== false
+          PropertyPaneToggle('sortTasksByStartDate', {
+            label: strings.SortTasksByStartDateFieldLabel,
+            checked: !!this.properties.sortTasksByStartDate
+          }),
+          PropertyPaneToggle('colorBarsByStatus', {
+            label: strings.ColorBarsByStatusFieldLabel,
+            checked: this.properties.colorBarsByStatus !== false
           }),
           PropertyPaneToggle('showCurrentDateLine', {
             label: strings.ShowCurrentDateLineFieldLabel,

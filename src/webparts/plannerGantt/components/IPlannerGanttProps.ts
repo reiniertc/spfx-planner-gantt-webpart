@@ -7,12 +7,16 @@ export interface IPlannerGanttProps {
   viewMode: string;
   showCompletedTasks: boolean;
   showBucketsAsPhases: boolean;
-  showProgressOnBar: boolean;
+  colorBarsByStatus: boolean;
+  sortTasksByStartDate: boolean;
   showCurrentDateLine: boolean;
   showStartDateColumn: boolean;
   showEndDateColumn: boolean;
   showAssigneeColumn: boolean;
   bucketFilter?: IBucketFilter;
   isDarkTheme: boolean;
+  themePrimary: string;
+  themeSecondary: string;
+  themeGrey: string;
   plannerService: PlannerService;
 }
