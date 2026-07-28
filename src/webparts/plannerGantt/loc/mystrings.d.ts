@@ -57,6 +57,7 @@ declare interface IPlannerGanttWebPartStrings {
   ShowInfoStartDateFieldLabel: string;
   ShowInfoEndDateFieldLabel: string;
   ShowInfoAssigneeFieldLabel: string;
+  ShowInfoLabelsFieldLabel: string;
   ShowInfoStatusFieldLabel: string;
   ShowInfoCommentsFieldLabel: string;
   TaskInfoButtonTitle: string;
@@ -65,6 +66,7 @@ declare interface IPlannerGanttWebPartStrings {
   TaskInfoStartLabel: string;
   TaskInfoEndLabel: string;
   TaskInfoAssigneeLabel: string;
+  TaskInfoLabelsLabel: string;
   TaskInfoStatusLabel: string;
   TaskInfoCommentsHeading: string;
   TaskInfoNoCommentsLabel: string;

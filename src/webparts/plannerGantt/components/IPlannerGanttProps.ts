@@ -30,6 +30,7 @@ export interface IPlannerGanttProps {
   showInfoStartDate: boolean;
   showInfoEndDate: boolean;
   showInfoAssignee: boolean;
+  showInfoLabels: boolean;
   showInfoStatus: boolean;
   showInfoComments: boolean;
   bucketFilter?: IBucketFilter;

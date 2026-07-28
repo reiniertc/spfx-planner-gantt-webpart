@@ -51,6 +51,7 @@ export interface IPlannerGanttWebPartProps {
   showInfoStartDate: boolean;
   showInfoEndDate: boolean;
   showInfoAssignee: boolean;
+  showInfoLabels: boolean;
   showInfoStatus: boolean;
   showInfoComments: boolean;
   bucketFilter?: IBucketFilter;
@@ -124,6 +125,7 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         showInfoStartDate: this.properties.showInfoStartDate !== false,
         showInfoEndDate: this.properties.showInfoEndDate !== false,
         showInfoAssignee: this.properties.showInfoAssignee !== false,
+        showInfoLabels: this.properties.showInfoLabels !== false,
         showInfoStatus: this.properties.showInfoStatus !== false,
         showInfoComments: this.properties.showInfoComments !== false,
         // Shallow-copied so a mutated nested property still produces a new
@@ -446,6 +448,11 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showInfoAssignee', {
             label: strings.ShowInfoAssigneeFieldLabel,
             checked: this.properties.showInfoAssignee !== false,
+            disabled: this.properties.showTaskInfoIcon === false
+          }),
+          PropertyPaneToggle('showInfoLabels', {
+            label: strings.ShowInfoLabelsFieldLabel,
+            checked: this.properties.showInfoLabels !== false,
             disabled: this.properties.showTaskInfoIcon === false
           }),
           PropertyPaneToggle('showInfoStatus', {

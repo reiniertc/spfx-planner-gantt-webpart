@@ -14,6 +14,7 @@ export interface ITaskInfoOptions {
   showStartDate: boolean;
   showEndDate: boolean;
   showAssignee: boolean;
+  showLabels: boolean;
   showStatus: boolean;
   showComments: boolean;
 }
@@ -24,6 +25,7 @@ export interface ITaskInfoData {
   end: Date;
   progress: number;
   assignees: string[];
+  labels: string[];
   hasDescription: boolean;
 }
 
@@ -118,6 +120,12 @@ export const TaskInfoButton: React.FC<{
               <div className={styles.taskInfoSection}>
                 <span className={styles.taskInfoLabel}>{strings.TaskInfoAssigneeLabel}</span>
                 <span>{data.assignees.join(', ') || '–'}</span>
+              </div>
+            )}
+            {options.showLabels && (
+              <div className={styles.taskInfoSection}>
+                <span className={styles.taskInfoLabel}>{strings.TaskInfoLabelsLabel}</span>
+                <span>{data.labels.join(', ') || '–'}</span>
               </div>
             )}
             {options.showStatus && (

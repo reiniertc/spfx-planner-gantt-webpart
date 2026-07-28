@@ -159,7 +159,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     showAssigneeColumn, showLabelColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey,
     defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter, showLabelFilter, showCompletedFilterControl,
     showTitle, scrollToToday, scrollToTodayMarginUnits, showTaskInfoIcon, showInfoDescription, showInfoStartDate,
-    showInfoEndDate, showInfoAssignee, showInfoStatus, showInfoComments
+    showInfoEndDate, showInfoAssignee, showInfoLabels, showInfoStatus, showInfoComments
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
@@ -271,9 +271,10 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     showStartDate: showInfoStartDate,
     showEndDate: showInfoEndDate,
     showAssignee: showInfoAssignee,
+    showLabels: showInfoLabels,
     showStatus: showInfoStatus,
     showComments: showInfoComments
-  }), [showTaskInfoIcon, showInfoDescription, showInfoStartDate, showInfoEndDate, showInfoAssignee, showInfoStatus, showInfoComments]);
+  }), [showTaskInfoIcon, showInfoDescription, showInfoStartDate, showInfoEndDate, showInfoAssignee, showInfoLabels, showInfoStatus, showInfoComments]);
 
   const TaskListHeader = React.useMemo(() => createTaskListHeader(columns), [columns]);
   const TaskListTable = React.useMemo(

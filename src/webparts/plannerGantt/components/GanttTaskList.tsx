@@ -199,6 +199,7 @@ export function createTaskListTable(
                       end: task.end,
                       progress: task.progress,
                       assignees,
+                      labels: chartTask.labels || [],
                       hasDescription: !!chartTask.hasDescription
                     }}
                     options={taskInfoOptions}
