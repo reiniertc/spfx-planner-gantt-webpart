@@ -14,7 +14,7 @@ import {
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
-import { MSGraphClientV3 } from '@microsoft/sp-http';
+import { MSGraphClientV3, SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
 
 import * as strings from 'PlannerGanttWebPartStrings';
 import PlannerGantt, { MIN_VISIBLE_UNITS, MAX_VISIBLE_UNITS } from './components/PlannerGantt';
@@ -74,13 +74,13 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
   private _bucketsLoadStatus: LoadStatus = 'idle';
   private _bucketsLoadedForPlanId: string = '';
 
+  // Reuses the SharePoint page's own title instead of asking for a second,
+  // redundant one in the property pane; falls back to the plan's name until
+  // it's loaded (or if the page has none, e.g. outside a real page context).
+  private _pageTitle: string | undefined;
+
   public render(): void {
-    // Reuses the SharePoint page's own title instead of asking for a second,
-    // redundant one in the property pane. legacyPageContext is untyped/
-    // undocumented but is the standard way to read the current page's title;
-    // falls back to the plan's name if it's ever unavailable.
-    const legacyPageContext: { pageTitle?: string } = this.context.pageContext.legacyPageContext || {};
-    const pageTitle: string = legacyPageContext.pageTitle || this.properties.planTitle || '';
+    const pageTitle: string = this._pageTitle || this.properties.planTitle || '';
 
     const element: React.ReactElement<IPlannerGanttProps> = React.createElement(
       PlannerGantt,
@@ -126,7 +126,33 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
     this._plannerService = new PlannerService(
       (): Promise<MSGraphClientV3> => this.context.msGraphClientFactory.getClient('3')
     );
+    this._loadPageTitle();
     return Promise.resolve();
+  }
+
+  private _loadPageTitle(): void {
+    // pageContext.list/listItem identify the Site Pages library item backing
+    // this page (present for both regular modern pages and single-part app
+    // pages), which is where the "Titel" field in "App page details" lives.
+    const list = this.context.pageContext.list;
+    const listItem = this.context.pageContext.listItem;
+    if (!list || !listItem) {
+      return;
+    }
+
+    this.context.spHttpClient
+      .get(
+        `${this.context.pageContext.web.absoluteUrl}/_api/web/lists(guid'${list.id}')/items(${listItem.id})?$select=Title`,
+        SPHttpClient.configurations.v1
+      )
+      .then((response: SPHttpClientResponse) => response.json())
+      .then((data: { Title?: string }) => {
+        this._pageTitle = data.Title || '';
+        this.render();
+      })
+      .catch(() => {
+        // Keep the plan-name fallback already in place.
+      });
   }
 
   protected onThemeChanged(currentTheme: IReadonlyTheme | undefined): void {
