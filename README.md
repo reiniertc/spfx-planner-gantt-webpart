@@ -23,10 +23,11 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   belongs to and lists every Planner plan owned by those groups (Graph has
   no single "list all my plans" endpoint, so this is the standard way to
   discover them).
-- **Title (toggle + custom text).** The heading above the chart starts out
-  filled in with the plan's name, but is a free-text field you can change
-  to whatever you want (it's what the print/export window's title uses
-  too), and can be hidden entirely.
+- **Title (toggle).** The heading above the chart automatically mirrors the
+  SharePoint page's own title (it's what the print/export window's title
+  uses too, and falls back to the plan's name if the page has none yet),
+  so there's no separate title field to keep in sync - just rename the
+  page. Can be hidden entirely.
 - **Open scrolled to today (toggle).** By default the chart otherwise opens
   scrolled to the very start of the plan's date range, which for a plan
   spanning several years means landing on its first weeks rather than
@@ -142,8 +143,8 @@ gulp serve
 
 1. Add the **Planner Gantt** web part to a page and edit it.
 2. In the property pane, pick a **Plan** from the dropdown (it lists every
-   plan from every Microsoft 365 group you belong to). Optionally edit the
-   **Title** text or turn it off with **Show title**.
+   plan from every Microsoft 365 group you belong to). The heading above
+   the chart shows the page's own title; turn it off with **Show title**.
 3. Optionally adjust, under **Display**: **Zoom level**, **Show completed
    tasks**, **Show buckets as phases**, **Bucket order** (board order vs.
    by earliest start date), **Sort tasks by start date**, **Color bars by

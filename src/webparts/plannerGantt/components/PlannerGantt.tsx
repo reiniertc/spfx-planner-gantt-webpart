@@ -154,7 +154,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     sortBucketsByStartDate, showTaskNameOnBar, showCurrentDateLine, showStartDateColumn, showEndDateColumn,
     showAssigneeColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey,
     defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter, showCompletedFilterControl,
-    customTitle, showTitle, scrollToToday, scrollToTodayMarginUnits
+    showTitle, scrollToToday, scrollToTodayMarginUnits
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
@@ -400,14 +400,14 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
               <DefaultButton
                 text={strings.PrintButtonLabel}
                 iconProps={{ iconName: 'Print' }}
-                onClick={() => handlePrintExport(chartWrapperEl || undefined, customTitle || props.planTitle)}
+                onClick={() => handlePrintExport(chartWrapperEl || undefined, props.planTitle)}
               />
             </div>
           )}
         </div>
       )}
       <div ref={setChartWrapperEl}>
-        {showTitle && <h2 className={styles.planTitle}>{customTitle || props.planTitle}</h2>}
+        {showTitle && <h2 className={styles.planTitle}>{props.planTitle}</h2>}
         {visibleRows && visibleRows.length > 0 ? (
           <ColumnWidthsContext.Provider value={columnWidthsContextValue}>
             <Gantt

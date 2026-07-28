@@ -2,7 +2,6 @@ declare interface IPlannerGanttWebPartStrings {
   PropertyPaneDescription: string;
   BasicGroupName: string;
   PlanFieldLabel: string;
-  CustomTitleFieldLabel: string;
   ShowTitleFieldLabel: string;
   DisplayGroupName: string;
   ViewModeFieldLabel: string;

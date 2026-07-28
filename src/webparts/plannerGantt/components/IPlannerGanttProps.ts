@@ -4,7 +4,6 @@ import { IBucketFilter } from '../models/IPlannerModels';
 export interface IPlannerGanttProps {
   planId: string;
   planTitle: string;
-  customTitle: string;
   showTitle: boolean;
   viewMode: string;
   showCompletedTasks: boolean;

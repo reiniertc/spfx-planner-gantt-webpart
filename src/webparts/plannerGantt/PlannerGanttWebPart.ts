@@ -10,7 +10,6 @@ import {
   PropertyPaneCheckbox,
   PropertyPaneLabel,
   PropertyPaneSlider,
-  PropertyPaneTextField,
   type IPropertyPaneDropdownOption
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
@@ -26,7 +25,6 @@ import { IPlannerPlanOption, IPlannerBucket, IBucketFilter } from './models/IPla
 export interface IPlannerGanttWebPartProps {
   planId: string;
   planTitle: string;
-  customTitle: string;
   showTitle: boolean;
   viewMode: string;
   showCompletedTasks: boolean;
@@ -77,12 +75,18 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
   private _bucketsLoadedForPlanId: string = '';
 
   public render(): void {
+    // Reuses the SharePoint page's own title instead of asking for a second,
+    // redundant one in the property pane. legacyPageContext is untyped/
+    // undocumented but is the standard way to read the current page's title;
+    // falls back to the plan's name if it's ever unavailable.
+    const legacyPageContext: { pageTitle?: string } = this.context.pageContext.legacyPageContext || {};
+    const pageTitle: string = legacyPageContext.pageTitle || this.properties.planTitle || '';
+
     const element: React.ReactElement<IPlannerGanttProps> = React.createElement(
       PlannerGantt,
       {
         planId: this.properties.planId || NO_PLAN_SELECTED,
-        planTitle: this.properties.planTitle,
-        customTitle: this.properties.customTitle || this.properties.planTitle || '',
+        planTitle: pageTitle,
         showTitle: this.properties.showTitle !== false,
         viewMode: this.properties.viewMode || 'Week',
         showCompletedTasks: !!this.properties.showCompletedTasks,
@@ -228,12 +232,8 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
   protected onPropertyPaneFieldChanged(propertyPath: string, oldValue: unknown, newValue: unknown): void {
     if (propertyPath === 'planId') {
       const selected: IPropertyPaneDropdownOption | undefined = this._planOptions.filter(option => option.key === newValue)[0];
+      // Only used as a fallback for when the page itself has no title yet.
       this.properties.planTitle = selected ? selected.text : '';
-      // Give the title field a sensible starting value, but don't clobber
-      // wording the user already typed in for a previous plan.
-      if (!this.properties.customTitle) {
-        this.properties.customTitle = this.properties.planTitle;
-      }
       this.properties.bucketFilter = undefined;
       this._loadBucketOptionsIfNeeded(newValue as string);
     }
@@ -260,9 +260,6 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
             options: planDropdownOptions,
             disabled: isLoadingPlans || plansHaveError,
             selectedKey: this.properties.planId
-          }),
-          PropertyPaneTextField('customTitle', {
-            label: strings.CustomTitleFieldLabel
           }),
           PropertyPaneToggle('showTitle', {
             label: strings.ShowTitleFieldLabel,

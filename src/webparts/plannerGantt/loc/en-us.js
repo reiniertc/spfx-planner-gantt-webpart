@@ -3,7 +3,6 @@ define([], function() {
     "PropertyPaneDescription": "Choose a Planner plan and how its tasks should be displayed.",
     "BasicGroupName": "Plan",
     "PlanFieldLabel": "Plan",
-    "CustomTitleFieldLabel": "Title",
     "ShowTitleFieldLabel": "Show title",
     "DisplayGroupName": "Display",
     "ViewModeFieldLabel": "Zoom level",
