@@ -20,7 +20,7 @@
     "group": { "default": "Advanced" },
     "title": { "default": "PlannerGantt" },
     "description": { "default": "Displays Microsoft Planner tasks from a selected plan as a Gantt chart" },
-    "officeFabricIconFontName": "GanttChart",
+    "iconImageUrl": "./assets/icon.png",
     "properties": {
       "description": "PlannerGantt"
     }

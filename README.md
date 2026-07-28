@@ -202,6 +202,10 @@ gulp serve
   Same underlying cause as the Year-zoom gap above: it would take
   switching (or patching) the charting library to unlock.
 
+## Copyright
+
+Built for Andersom BV. © 2026 Andersom BV.
+
 ## Disclaimer
 
 **THIS CODE IS PROVIDED _AS IS_ WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.**
