@@ -23,6 +23,16 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   belongs to and lists every Planner plan owned by those groups (Graph has
   no single "list all my plans" endpoint, so this is the standard way to
   discover them).
+- **Title (toggle + custom text).** The heading above the chart starts out
+  filled in with the plan's name, but is a free-text field you can change
+  to whatever you want (it's what the print/export window's title uses
+  too), and can be hidden entirely.
+- **Open scrolled to today (toggle).** By default the chart otherwise opens
+  scrolled to the very start of the plan's date range, which for a plan
+  spanning several years means landing on its first weeks rather than
+  anywhere near the present. When on, it opens scrolled to today's date
+  instead, with a configurable margin (0-4 zoom periods) of context before
+  it.
 - **Gantt chart rendering** via [`gantt-task-react`](https://github.com/MaTeMaTuK/gantt-task-react).
 - **Buckets as phases (toggle).** When on (default), each Planner bucket is
   shown as a bold phase bar spanning from the earliest start date to the
@@ -132,11 +142,13 @@ gulp serve
 
 1. Add the **Planner Gantt** web part to a page and edit it.
 2. In the property pane, pick a **Plan** from the dropdown (it lists every
-   plan from every Microsoft 365 group you belong to).
+   plan from every Microsoft 365 group you belong to). Optionally edit the
+   **Title** text or turn it off with **Show title**.
 3. Optionally adjust, under **Display**: **Zoom level**, **Show completed
    tasks**, **Show buckets as phases**, **Bucket order** (board order vs.
    by earliest start date), **Sort tasks by start date**, **Color bars by
-   status**, **Show task name on bars**, and **Highlight today's date**.
+   status**, **Show task name on bars**, **Highlight today's date**, **Open
+   scrolled to today** and its margin.
 4. Under **Columns**, toggle the **Start date**, **Due date** and **Assigned
    to** columns next to the chart.
 5. Under **Buckets to show**, uncheck a bucket (e.g. Backlog) to hide it and

@@ -10,6 +10,7 @@ import {
   PropertyPaneCheckbox,
   PropertyPaneLabel,
   PropertyPaneSlider,
+  PropertyPaneTextField,
   type IPropertyPaneDropdownOption
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
@@ -25,6 +26,8 @@ import { IPlannerPlanOption, IPlannerBucket, IBucketFilter } from './models/IPla
 export interface IPlannerGanttWebPartProps {
   planId: string;
   planTitle: string;
+  customTitle: string;
+  showTitle: boolean;
   viewMode: string;
   showCompletedTasks: boolean;
   showBucketsAsPhases: boolean;
@@ -41,10 +44,13 @@ export interface IPlannerGanttWebPartProps {
   showPrintButton: boolean;
   showAssigneeFilter: boolean;
   showCompletedFilterControl: boolean;
+  scrollToToday: boolean;
+  scrollToTodayMarginUnits: number;
   bucketFilter?: IBucketFilter;
 }
 
 const DEFAULT_ZOOM_LEVEL: number = 3;
+const DEFAULT_SCROLL_MARGIN_UNITS: number = 1;
 
 const NO_PLAN_SELECTED: string = '';
 
@@ -76,6 +82,8 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
       {
         planId: this.properties.planId || NO_PLAN_SELECTED,
         planTitle: this.properties.planTitle,
+        customTitle: this.properties.customTitle || this.properties.planTitle || '',
+        showTitle: this.properties.showTitle !== false,
         viewMode: this.properties.viewMode || 'Week',
         showCompletedTasks: !!this.properties.showCompletedTasks,
         showBucketsAsPhases: this.properties.showBucketsAsPhases !== false,
@@ -92,6 +100,10 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         showPrintButton: this.properties.showPrintButton !== false,
         showAssigneeFilter: this.properties.showAssigneeFilter !== false,
         showCompletedFilterControl: this.properties.showCompletedFilterControl !== false,
+        scrollToToday: this.properties.scrollToToday !== false,
+        scrollToTodayMarginUnits: this.properties.scrollToTodayMarginUnits !== undefined
+          ? this.properties.scrollToTodayMarginUnits
+          : DEFAULT_SCROLL_MARGIN_UNITS,
         // Shallow-copied so a mutated nested property still produces a new
         // reference for React to notice between property pane changes.
         bucketFilter: this.properties.bucketFilter ? { ...this.properties.bucketFilter } : undefined,
@@ -217,6 +229,11 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
     if (propertyPath === 'planId') {
       const selected: IPropertyPaneDropdownOption | undefined = this._planOptions.filter(option => option.key === newValue)[0];
       this.properties.planTitle = selected ? selected.text : '';
+      // Give the title field a sensible starting value, but don't clobber
+      // wording the user already typed in for a previous plan.
+      if (!this.properties.customTitle) {
+        this.properties.customTitle = this.properties.planTitle;
+      }
       this.properties.bucketFilter = undefined;
       this._loadBucketOptionsIfNeeded(newValue as string);
     }
@@ -243,6 +260,13 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
             options: planDropdownOptions,
             disabled: isLoadingPlans || plansHaveError,
             selectedKey: this.properties.planId
+          }),
+          PropertyPaneTextField('customTitle', {
+            label: strings.CustomTitleFieldLabel
+          }),
+          PropertyPaneToggle('showTitle', {
+            label: strings.ShowTitleFieldLabel,
+            checked: this.properties.showTitle !== false
           })
         ]
       },
@@ -286,6 +310,20 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showCurrentDateLine', {
             label: strings.ShowCurrentDateLineFieldLabel,
             checked: this.properties.showCurrentDateLine !== false
+          }),
+          PropertyPaneToggle('scrollToToday', {
+            label: strings.ScrollToTodayFieldLabel,
+            checked: this.properties.scrollToToday !== false
+          }),
+          PropertyPaneSlider('scrollToTodayMarginUnits', {
+            label: strings.ScrollToTodayMarginFieldLabel,
+            min: 0,
+            max: 4,
+            step: 1,
+            value: this.properties.scrollToTodayMarginUnits !== undefined
+              ? this.properties.scrollToTodayMarginUnits
+              : DEFAULT_SCROLL_MARGIN_UNITS,
+            disabled: this.properties.scrollToToday === false
           })
         ]
       },

@@ -2,6 +2,8 @@ declare interface IPlannerGanttWebPartStrings {
   PropertyPaneDescription: string;
   BasicGroupName: string;
   PlanFieldLabel: string;
+  CustomTitleFieldLabel: string;
+  ShowTitleFieldLabel: string;
   DisplayGroupName: string;
   ViewModeFieldLabel: string;
   ViewModeDay: string;
@@ -16,6 +18,8 @@ declare interface IPlannerGanttWebPartStrings {
   ColorBarsByStatusFieldLabel: string;
   ShowTaskNameOnBarFieldLabel: string;
   ShowCurrentDateLineFieldLabel: string;
+  ScrollToTodayFieldLabel: string;
+  ScrollToTodayMarginFieldLabel: string;
   ZoomSliderLabel: string;
   ZoomUnitDay: string;
   ZoomUnitWeek: string;

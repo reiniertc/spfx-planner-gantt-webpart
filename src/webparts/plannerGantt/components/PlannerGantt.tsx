@@ -32,6 +32,19 @@ function clampVisibleUnits(value: number): number {
   return Math.min(MAX_VISIBLE_UNITS, Math.max(MIN_VISIBLE_UNITS, value));
 }
 
+/** Subtracts whole zoom periods (day/week/month) from a date, calendar-aware. */
+function subtractUnits(date: Date, viewMode: string, units: number): Date {
+  const result: Date = new Date(date.getTime());
+  if (viewMode === 'Month') {
+    result.setMonth(result.getMonth() - units);
+  } else if (viewMode === 'Week') {
+    result.setDate(result.getDate() - units * 7);
+  } else {
+    result.setDate(result.getDate() - units);
+  }
+  return result;
+}
+
 const TODAY_LINE_COLOR: string = 'rgba(232, 17, 35, 0.15)';
 const TODAY_LINE_COLOR_HIDDEN: string = 'transparent';
 const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
@@ -140,7 +153,8 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     planId, viewMode, showCompletedTasks, showBucketsAsPhases, colorBarsByStatus, sortTasksByStartDate,
     sortBucketsByStartDate, showTaskNameOnBar, showCurrentDateLine, showStartDateColumn, showEndDateColumn,
     showAssigneeColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey,
-    defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter, showCompletedFilterControl
+    defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter, showCompletedFilterControl,
+    customTitle, showTitle, scrollToToday, scrollToTodayMarginUnits
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
@@ -187,6 +201,17 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   }, []);
 
   const columnWidthsContextValue = React.useMemo(() => ({ widths: columnWidths, setColumnWidth }), [columnWidths, setColumnWidth]);
+
+  // Computed once per plan/view-mode/setting change (not on every render),
+  // so it positions the initial scroll without fighting the viewer's own
+  // scrolling afterwards.
+  const viewDate: Date | undefined = React.useMemo(() => {
+    if (!scrollToToday) {
+      return undefined;
+    }
+    return subtractUnits(new Date(), viewMode, scrollToTodayMarginUnits);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planId, viewMode, scrollToToday, scrollToTodayMarginUnits]);
 
   React.useEffect(() => {
     if (!planId) {
@@ -375,19 +400,20 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
               <DefaultButton
                 text={strings.PrintButtonLabel}
                 iconProps={{ iconName: 'Print' }}
-                onClick={() => handlePrintExport(chartWrapperEl || undefined, props.planTitle)}
+                onClick={() => handlePrintExport(chartWrapperEl || undefined, customTitle || props.planTitle)}
               />
             </div>
           )}
         </div>
       )}
       <div ref={setChartWrapperEl}>
-        <h2 className={styles.planTitle}>{props.planTitle}</h2>
+        {showTitle && <h2 className={styles.planTitle}>{customTitle || props.planTitle}</h2>}
         {visibleRows && visibleRows.length > 0 ? (
           <ColumnWidthsContext.Provider value={columnWidthsContextValue}>
             <Gantt
               tasks={toGanttTasks(visibleRows, colorBarsByStatus, { primary: themePrimary, secondary: themeSecondary, grey: themeGrey })}
               viewMode={resolvedViewMode}
+              viewDate={viewDate}
               columnWidth={columnWidth}
               listCellWidth="220px"
               rowHeight={42}
