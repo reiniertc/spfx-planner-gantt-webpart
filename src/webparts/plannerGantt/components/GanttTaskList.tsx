@@ -10,7 +10,6 @@ export interface IGanttChartTask extends GanttTask {
   assignees?: string[];
   labels?: string[];
   hasDescription?: boolean;
-  conversationThreadId?: string;
 }
 
 export interface IColumnVisibility {
@@ -196,13 +195,11 @@ export function createTaskListTable(
                   <TaskInfoButton
                     data={{
                       taskId: task.id,
-                      planId,
                       start: task.start,
                       end: task.end,
                       progress: task.progress,
                       assignees,
-                      hasDescription: !!chartTask.hasDescription,
-                      hasConversation: !!chartTask.conversationThreadId
+                      hasDescription: !!chartTask.hasDescription
                     }}
                     options={taskInfoOptions}
                     plannerService={plannerService}

@@ -20,13 +20,11 @@ export interface ITaskInfoOptions {
 
 export interface ITaskInfoData {
   taskId: string;
-  planId: string;
   start: Date;
   end: Date;
   progress: number;
   assignees: string[];
   hasDescription: boolean;
-  hasConversation: boolean;
 }
 
 function statusLabel(progress: number): string {
@@ -64,9 +62,9 @@ export const TaskInfoButton: React.FC<{
         .catch(() => setDescription({ status: 'loaded', value: '' }));
     }
 
-    if (options.showComments && data.hasConversation && comments.status === 'idle') {
+    if (options.showComments && comments.status === 'idle') {
       setComments({ status: 'loading' });
-      plannerService.getTaskComments(data.planId, data.taskId)
+      plannerService.getTaskComments(data.taskId)
         .then(list => setComments({ status: 'loaded', value: list }))
         .catch(() => setComments({ status: 'loaded', value: [] }));
     }
@@ -135,13 +133,13 @@ export const TaskInfoButton: React.FC<{
                   <Spinner size={SpinnerSize.small} label={strings.TaskInfoLoadingLabel} />
                 ) : (
                   <div className={styles.taskInfoChats}>
-                    {!data.hasConversation || !comments.value || comments.value.length === 0 ? (
+                    {!comments.value || comments.value.length === 0 ? (
                       <div className={styles.taskInfoNoComments}>{strings.TaskInfoNoCommentsLabel}</div>
                     ) : (
                       comments.value.map((comment, index) => (
                         <div className={styles.taskInfoChatItem} key={index}>
                           <div>
-                            <span className={styles.taskInfoChatFrom}>{comment.from}</span>
+                            <span className={styles.taskInfoChatFrom}>{comment.from || strings.TaskInfoUnknownAuthorLabel}</span>
                             <span className={styles.taskInfoChatDate}>{new Date(comment.createdDateTime).toLocaleString()}</span>
                           </div>
                           <div>{comment.bodyText}</div>

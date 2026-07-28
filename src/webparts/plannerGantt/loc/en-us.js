@@ -69,6 +69,7 @@ define([], function() {
     "TaskInfoStatusLabel": "Status:",
     "TaskInfoCommentsHeading": "Comments",
     "TaskInfoNoCommentsLabel": "No comments yet.",
+    "TaskInfoUnknownAuthorLabel": "Someone",
     "StatusNotStartedLabel": "Not started",
     "StatusInProgressLabel": "In progress",
     "StatusCompletedLabel": "Completed",

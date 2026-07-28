@@ -35,7 +35,6 @@ export interface IPlannerTask {
   /** Category/label names applied to the task, resolved via the plan's categoryDescriptions. */
   labels: string[];
   hasDescription: boolean;
-  conversationThreadId?: string;
 }
 
 /**
@@ -57,10 +56,9 @@ export interface IGanttRow {
   /** Category/label names applied to the task. Empty for bucket/phase rows. */
   labels: string[];
   hasDescription: boolean;
-  conversationThreadId?: string;
 }
 
-/** A single post in a task's Planner/Outlook conversation, ready to display. */
+/** A single message in a task's Planner chat, ready to display. */
 export interface IPlannerTaskComment {
   from: string;
   createdDateTime: string;

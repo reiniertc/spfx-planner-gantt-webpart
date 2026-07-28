@@ -68,6 +68,7 @@ declare interface IPlannerGanttWebPartStrings {
   TaskInfoStatusLabel: string;
   TaskInfoCommentsHeading: string;
   TaskInfoNoCommentsLabel: string;
+  TaskInfoUnknownAuthorLabel: string;
   StatusNotStartedLabel: string;
   StatusInProgressLabel: string;
   StatusCompletedLabel: string;

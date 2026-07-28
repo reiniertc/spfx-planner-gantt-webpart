@@ -83,7 +83,7 @@ export class PlannerService {
       this.getBuckets(planId),
       client
         .api(`/planner/plans/${planId}/tasks`)
-        .select('id,title,bucketId,orderHint,percentComplete,priority,startDateTime,dueDateTime,createdDateTime,completedDateTime,assignments,appliedCategories,hasDescription,conversationThreadId')
+        .select('id,title,bucketId,orderHint,percentComplete,priority,startDateTime,dueDateTime,createdDateTime,completedDateTime,assignments,appliedCategories,hasDescription')
         .get(),
       this.getCategoryNames(client, planId)
     ]);
@@ -108,7 +108,7 @@ export class PlannerService {
         id: string; title: string; bucketId: string; orderHint: string; percentComplete: number; priority: number;
         startDateTime?: string; dueDateTime?: string; createdDateTime: string; completedDateTime?: string;
         assignments?: Record<string, unknown>; appliedCategories?: Record<string, boolean>;
-        hasDescription: boolean; conversationThreadId?: string;
+        hasDescription: boolean;
       }) => ({
         id: task.id,
         title: task.title || '(Untitled task)',
@@ -122,8 +122,7 @@ export class PlannerService {
         completedDateTime: task.completedDateTime,
         assigneeIds: Object.keys(task.assignments || {}),
         labels: toLabels(task.appliedCategories),
-        hasDescription: !!task.hasDescription,
-        conversationThreadId: task.conversationThreadId
+        hasDescription: !!task.hasDescription
       }));
 
     const assigneeNameById: Record<string, string> = await this.resolveAssigneeNames(client, tasks);
@@ -205,45 +204,48 @@ export class PlannerService {
   }
 
   /**
-   * A task's comments live in the Outlook conversation thread of the group
-   * that owns its plan, not on the task itself - resolved on demand, only
+   * The modern Planner task chat ("Taakchat" in the current UI) is served by
+   * a dedicated, currently beta-only Graph endpoint - the older approach of
+   * following a task's conversationThreadId into the owning group's Outlook
+   * conversation is Planner's previous/legacy comment system and often
+   * doesn't reflect what today's UI actually shows. Resolved on demand, only
    * when the info popup's comments section is both enabled and opened.
    */
-  public async getTaskComments(planId: string, taskId: string): Promise<IPlannerTaskComment[]> {
+  public async getTaskComments(taskId: string): Promise<IPlannerTaskComment[]> {
     try {
       const client: MSGraphClientV3 = await this.graphClientFactory();
 
-      const task = await client.api(`/planner/tasks/${taskId}`).select('conversationThreadId').get();
-      const conversationThreadId: string | undefined = task.conversationThreadId;
-      if (!conversationThreadId) {
-        return [];
-      }
-
-      const plan = await client.api(`/planner/plans/${planId}`).select('owner,container').get();
-      const groupId: string | undefined = (plan.container && plan.container.containerId) || plan.owner;
-      if (!groupId) {
-        return [];
-      }
-
-      const postsResponse = await client
-        .api(`/groups/${groupId}/threads/${conversationThreadId}/posts`)
-        .select('from,body,createdDateTime')
+      const messagesResponse = await client
+        .api(`/planner/tasks/${taskId}/messages`)
+        .version('beta')
+        .select('content,createdDateTime,createdBy')
         .get();
 
-      const comments: IPlannerTaskComment[] = (postsResponse.value || []).map((post: {
-        from?: { emailAddress?: { name?: string } };
-        body?: { content?: string };
+      const messages: Array<{
+        content?: string;
         createdDateTime: string;
-      }) => ({
-        from: (post.from && post.from.emailAddress && post.from.emailAddress.name) || '',
-        createdDateTime: post.createdDateTime,
-        bodyText: this.stripHtml(post.body ? post.body.content || '' : '')
-      }));
+        createdBy?: { user?: { id?: string } };
+      }> = messagesResponse.value || [];
+
+      const userIds: string[] = messages
+        .map(message => message.createdBy && message.createdBy.user && message.createdBy.user.id)
+        .filter((id): id is string => !!id)
+        .filter((id, index, all) => all.indexOf(id) === index);
+      const nameById: Record<string, string> = await this.resolveUserNames(client, userIds);
+
+      const comments: IPlannerTaskComment[] = messages.map(message => {
+        const userId: string | undefined = message.createdBy && message.createdBy.user && message.createdBy.user.id;
+        return {
+          from: (userId && nameById[userId]) || '',
+          createdDateTime: message.createdDateTime,
+          bodyText: this.stripHtml(message.content || '')
+        };
+      });
 
       comments.sort((a, b) => new Date(a.createdDateTime).getTime() - new Date(b.createdDateTime).getTime());
       return comments;
     } catch {
-      // Best-effort: missing permissions, a deleted thread, etc. shouldn't break the popup.
+      // Best-effort: missing permissions, beta endpoint hiccups, etc. shouldn't break the popup.
       return [];
     }
   }
@@ -261,15 +263,19 @@ export class PlannerService {
   private async resolveAssigneeNames(client: MSGraphClientV3, tasks: IPlannerTask[]): Promise<Record<string, string>> {
     const allIds: string[] = tasks.reduce<string[]>((ids, task) => ids.concat(task.assigneeIds), []);
     const distinctIds: string[] = allIds.filter((id, index) => allIds.indexOf(id) === index);
+    return this.resolveUserNames(client, distinctIds);
+  }
 
-    if (distinctIds.length === 0) {
+  /** Batch-resolves AAD user ids to display names in a single Graph call. */
+  private async resolveUserNames(client: MSGraphClientV3, userIds: string[]): Promise<Record<string, string>> {
+    if (userIds.length === 0) {
       return {};
     }
 
     try {
       const response = await client
         .api('/directoryObjects/getByIds')
-        .post({ ids: distinctIds, types: ['user'] });
+        .post({ ids: userIds, types: ['user'] });
 
       const nameById: Record<string, string> = {};
       (response.value || []).forEach((user: { id: string; displayName?: string }) => {
@@ -319,8 +325,7 @@ export class PlannerService {
         bucketName: '',
         assignees,
         labels: task.labels,
-        hasDescription: task.hasDescription,
-        conversationThreadId: task.conversationThreadId
+        hasDescription: task.hasDescription
       };
     }
 
@@ -340,8 +345,7 @@ export class PlannerService {
       bucketName: '',
       assignees,
       labels: task.labels,
-      hasDescription: task.hasDescription,
-      conversationThreadId: task.conversationThreadId
+      hasDescription: task.hasDescription
     };
   }
 

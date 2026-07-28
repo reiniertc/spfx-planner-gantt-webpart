@@ -211,6 +211,13 @@ gulp serve
   of that specific label isn't achievable without forking the library.
   Same underlying cause as the Year-zoom gap above: it would take
   switching (or patching) the charting library to unlock.
+- **Task info popup comments use a beta Graph endpoint.** The current
+  Planner task chat ("Taakchat") is only exposed via
+  `/planner/tasks/{id}/messages?$select=...` on the **beta** Graph API - the
+  older, v1.0 `conversationThreadId`/group-conversation route is Planner's
+  previous comment system and often doesn't reflect what today's UI
+  actually shows. Beta endpoints can change without notice; if Microsoft
+  ships a v1.0 equivalent, switch to it.
 
 ## Copyright
 

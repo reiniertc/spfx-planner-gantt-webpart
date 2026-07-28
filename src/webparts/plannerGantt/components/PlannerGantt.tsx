@@ -111,7 +111,6 @@ function toGanttTasks(rows: IGanttRow[], colorBarsByStatus: boolean, theme: IThe
       assignees: row.assignees,
       labels: row.labels,
       hasDescription: row.hasDescription,
-      conversationThreadId: row.conversationThreadId,
       isDisabled: true, // Planner is the system of record; the chart is read-only.
       styles: statusColor
         ? {
