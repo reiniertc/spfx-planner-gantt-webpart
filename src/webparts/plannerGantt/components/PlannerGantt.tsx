@@ -258,7 +258,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   }), [showStartDateColumn, showEndDateColumn, showAssigneeColumn]);
 
   const TaskListHeader = React.useMemo(() => createTaskListHeader(columns), [columns]);
-  const TaskListTable = React.useMemo(() => createTaskListTable(columns), [columns]);
+  const TaskListTable = React.useMemo(() => createTaskListTable(columns, planId), [columns, planId]);
 
   const assigneeOptions: IDropdownOption[] = React.useMemo(() => {
     const options: IDropdownOption[] = [{ key: '', text: strings.AllAssigneesOption }];
@@ -352,7 +352,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
 
   const handleTaskSelect = (task: IGanttChartTask, isSelected: boolean): void => {
     if (isSelected && task.type !== 'project') {
-      openPlannerTask(task.id);
+      openPlannerTask(planId, task.id);
     }
   };
 

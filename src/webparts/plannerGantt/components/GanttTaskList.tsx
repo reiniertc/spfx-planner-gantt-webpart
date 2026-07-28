@@ -59,11 +59,15 @@ interface ITaskListTableProps {
   onExpanderClick: (task: GanttTask) => void;
 }
 
-const PLANNER_TASK_URL_BASE: string = 'https://tasks.office.com/Home/Task/';
-
-/** Opens the actual Planner task in a new tab. Not valid for phase/project rows - those are synthetic bucket summaries, not real Planner tasks. */
-export function openPlannerTask(taskId: string): void {
-  window.open(`${PLANNER_TASK_URL_BASE}${encodeURIComponent(taskId)}`, '_blank', 'noopener,noreferrer');
+/**
+ * Opens the actual task, on its own plan board, in a new tab. Not valid for
+ * phase/project rows - those are synthetic bucket summaries, not real
+ * Planner tasks. The task id alone isn't enough for a working deep link in
+ * the current ("new") Planner - it needs the plan id too.
+ */
+export function openPlannerTask(planId: string, taskId: string): void {
+  const url: string = `https://planner.cloud.microsoft/webui/plan/${encodeURIComponent(planId)}/view/board/task/${encodeURIComponent(taskId)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 function expanderSymbol(task: GanttTask): string {
@@ -136,7 +140,7 @@ export function createTaskListHeader(columns: IColumnVisibility): React.FC<ITask
   };
 }
 
-export function createTaskListTable(columns: IColumnVisibility): React.FC<ITaskListTableProps> {
+export function createTaskListTable(columns: IColumnVisibility, planId: string): React.FC<ITaskListTableProps> {
   return function TaskListTable(props: ITaskListTableProps): React.ReactElement {
     const { widths } = React.useContext(ColumnWidthsContext);
 
@@ -162,7 +166,7 @@ export function createTaskListTable(columns: IColumnVisibility): React.FC<ITaskL
                   <span
                     className={styles.ganttTableTaskLink}
                     style={isPhaseChild ? { paddingLeft: '1.2em' } : undefined}
-                    onClick={() => openPlannerTask(task.id)}
+                    onClick={() => openPlannerTask(planId, task.id)}
                     title={strings.OpenInPlannerLabel}
                   >
                     {task.name}

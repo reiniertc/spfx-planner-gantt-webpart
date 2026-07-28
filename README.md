@@ -93,9 +93,9 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
     include whatever else is on the page since that's outside this web
     part's control.
 - **Click a task to open it in Planner.** Both the bar itself and its name
-  in the task list open the actual task at `tasks.office.com` in a new tab.
-  Phase/bucket rows aren't clickable - they're a synthetic summary, not a
-  real Planner task.
+  in the task list open that exact task, on its own plan board, at
+  `planner.cloud.microsoft` in a new tab. Phase/bucket rows aren't
+  clickable - they're a synthetic summary, not a real Planner task.
 - Read-only by design: Planner remains the system of record. The chart does
   not write back to Planner.
 
