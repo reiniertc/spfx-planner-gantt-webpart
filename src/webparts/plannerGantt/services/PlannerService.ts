@@ -242,7 +242,7 @@ export class PlannerService {
         };
       });
 
-      comments.sort((a, b) => new Date(a.createdDateTime).getTime() - new Date(b.createdDateTime).getTime());
+      comments.sort((a, b) => new Date(b.createdDateTime).getTime() - new Date(a.createdDateTime).getTime());
       return comments;
     } catch {
       // Best-effort: missing permissions, beta endpoint hiccups, etc. shouldn't break the popup.
