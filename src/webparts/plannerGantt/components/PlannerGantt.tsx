@@ -15,6 +15,7 @@ import {
   IGanttChartTask, IColumnWidths, DEFAULT_COLUMN_WIDTHS, ColumnWidthsContext,
   createTaskListHeader, createTaskListTable, openPlannerTask
 } from './GanttTaskList';
+import { ITaskInfoOptions } from './TaskInfoPopover';
 import * as strings from 'PlannerGanttWebPartStrings';
 
 // How many of the chosen time unit (Day/Week/Month) should be visible at
@@ -27,6 +28,7 @@ const MIN_COLUMN_WIDTH_PX: number = 28;
 const FALLBACK_CONTAINER_WIDTH: number = 900;
 
 const UNASSIGNED_KEY: string = '__unassigned__';
+const NO_LABEL_KEY: string = '__nolabel__';
 
 function clampVisibleUnits(value: number): number {
   return Math.min(MAX_VISIBLE_UNITS, Math.max(MIN_VISIBLE_UNITS, value));
@@ -107,6 +109,9 @@ function toGanttTasks(rows: IGanttRow[], colorBarsByStatus: boolean, theme: IThe
       type: row.type,
       project: row.project,
       assignees: row.assignees,
+      labels: row.labels,
+      hasDescription: row.hasDescription,
+      conversationThreadId: row.conversationThreadId,
       isDisabled: true, // Planner is the system of record; the chart is read-only.
       styles: statusColor
         ? {
@@ -152,9 +157,10 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   const {
     planId, viewMode, showCompletedTasks, showBucketsAsPhases, colorBarsByStatus, sortTasksByStartDate,
     sortBucketsByStartDate, showTaskNameOnBar, showCurrentDateLine, showStartDateColumn, showEndDateColumn,
-    showAssigneeColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey,
-    defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter, showCompletedFilterControl,
-    showTitle, scrollToToday, scrollToTodayMarginUnits
+    showAssigneeColumn, showLabelColumn, bucketFilter, plannerService, themePrimary, themeSecondary, themeGrey,
+    defaultZoomLevel, showZoomControl, showPrintButton, showAssigneeFilter, showLabelFilter, showCompletedFilterControl,
+    showTitle, scrollToToday, scrollToTodayMarginUnits, showTaskInfoIcon, showInfoDescription, showInfoStartDate,
+    showInfoEndDate, showInfoAssignee, showInfoStatus, showInfoComments
   } = props;
   // Stringified so an equivalent-but-new object reference (the web part
   // shallow-copies bucketFilter on every render) doesn't trigger a refetch.
@@ -168,6 +174,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   // Live, viewer-side controls - not persisted to the web part's properties.
   const [visibleUnits, setVisibleUnits] = React.useState<number>(clampedDefaultZoom);
   const [selectedAssignee, setSelectedAssignee] = React.useState<string>('');
+  const [selectedLabel, setSelectedLabel] = React.useState<string>('');
   const [liveShowCompleted, setLiveShowCompleted] = React.useState<boolean>(showCompletedTasks);
   const [columnWidths, setColumnWidths] = React.useState<IColumnWidths>(DEFAULT_COLUMN_WIDTHS);
   const [containerWidth, setContainerWidth] = React.useState<number>(FALLBACK_CONTAINER_WIDTH);
@@ -176,6 +183,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   React.useEffect(() => {
     setVisibleUnits(clampedDefaultZoom);
     setSelectedAssignee('');
+    setSelectedLabel('');
     setLiveShowCompleted(showCompletedTasks);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planId, viewMode, clampedDefaultZoom, showCompletedTasks]);
@@ -254,11 +262,25 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
   const columns = React.useMemo(() => ({
     showStartDate: showStartDateColumn,
     showEndDate: showEndDateColumn,
-    showAssignee: showAssigneeColumn
-  }), [showStartDateColumn, showEndDateColumn, showAssigneeColumn]);
+    showAssignee: showAssigneeColumn,
+    showLabel: showLabelColumn
+  }), [showStartDateColumn, showEndDateColumn, showAssigneeColumn, showLabelColumn]);
+
+  const taskInfoOptions: ITaskInfoOptions = React.useMemo(() => ({
+    show: showTaskInfoIcon,
+    showDescription: showInfoDescription,
+    showStartDate: showInfoStartDate,
+    showEndDate: showInfoEndDate,
+    showAssignee: showInfoAssignee,
+    showStatus: showInfoStatus,
+    showComments: showInfoComments
+  }), [showTaskInfoIcon, showInfoDescription, showInfoStartDate, showInfoEndDate, showInfoAssignee, showInfoStatus, showInfoComments]);
 
   const TaskListHeader = React.useMemo(() => createTaskListHeader(columns), [columns]);
-  const TaskListTable = React.useMemo(() => createTaskListTable(columns, planId), [columns, planId]);
+  const TaskListTable = React.useMemo(
+    () => createTaskListTable(columns, planId, taskInfoOptions, plannerService),
+    [columns, planId, taskInfoOptions, plannerService]
+  );
 
   const assigneeOptions: IDropdownOption[] = React.useMemo(() => {
     const options: IDropdownOption[] = [{ key: '', text: strings.AllAssigneesOption }];
@@ -290,13 +312,48 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     return options;
   }, [rows]);
 
+  const labelOptions: IDropdownOption[] = React.useMemo(() => {
+    const options: IDropdownOption[] = [{ key: '', text: strings.AllLabelsOption }];
+    if (!rows) {
+      return options;
+    }
+
+    let hasNoLabel: boolean = false;
+    const labelsSeen: Record<string, boolean> = {};
+    rows.forEach(row => {
+      if (row.type === 'project') {
+        return;
+      }
+      if (row.labels.length === 0) {
+        hasNoLabel = true;
+      }
+      row.labels.forEach(name => {
+        labelsSeen[name] = true;
+      });
+    });
+
+    if (hasNoLabel) {
+      options.push({ key: NO_LABEL_KEY, text: strings.NoLabelOption });
+    }
+    Object.keys(labelsSeen).sort((a, b) => a.localeCompare(b)).forEach(name => {
+      options.push({ key: name, text: name });
+    });
+
+    return options;
+  }, [rows]);
+
   const visibleRows: IGanttRow[] | undefined = React.useMemo(() => {
-    if (!rows || !selectedAssignee) {
+    if (!rows || (!selectedAssignee && !selectedLabel)) {
       return rows;
     }
 
-    const isMatch = (row: IGanttRow): boolean =>
-      selectedAssignee === UNASSIGNED_KEY ? row.assignees.length === 0 : row.assignees.indexOf(selectedAssignee) !== -1;
+    const isMatch = (row: IGanttRow): boolean => {
+      const assigneeMatch: boolean = !selectedAssignee
+        || (selectedAssignee === UNASSIGNED_KEY ? row.assignees.length === 0 : row.assignees.indexOf(selectedAssignee) !== -1);
+      const labelMatch: boolean = !selectedLabel
+        || (selectedLabel === NO_LABEL_KEY ? row.labels.length === 0 : row.labels.indexOf(selectedLabel) !== -1);
+      return assigneeMatch && labelMatch;
+    };
 
     const bucketsWithVisibleTasks: Record<string, boolean> = {};
     rows.forEach(row => {
@@ -306,7 +363,7 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     });
 
     return rows.filter(row => (row.type === 'project' ? !!bucketsWithVisibleTasks[row.id] : isMatch(row)));
-  }, [rows, selectedAssignee]);
+  }, [rows, selectedAssignee, selectedLabel]);
 
   if (!planId) {
     return (
@@ -348,7 +405,8 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
     Month: strings.ZoomUnitMonth
   } as Record<string, string>)[viewMode] || strings.ZoomUnitWeek;
   const rootClassName: string = showTaskNameOnBar ? styles.plannerGantt : `${styles.plannerGantt} ${styles.hideBarLabels}`;
-  const hasAnyToolbarControl: boolean = showZoomControl || showAssigneeFilter || showPrintButton || showCompletedFilterControl;
+  const hasAnyToolbarControl: boolean =
+    showZoomControl || showAssigneeFilter || showLabelFilter || showPrintButton || showCompletedFilterControl;
 
   const handleTaskSelect = (task: IGanttChartTask, isSelected: boolean): void => {
     if (isSelected && task.type !== 'project') {
@@ -392,6 +450,16 @@ const PlannerGantt: React.FC<IPlannerGanttProps> = (props: IPlannerGanttProps) =
                 selectedKey={selectedAssignee}
                 options={assigneeOptions}
                 onChange={(_event, option) => setSelectedAssignee(option ? String(option.key) : '')}
+              />
+            </div>
+          )}
+          {showLabelFilter && (
+            <div className={styles.toolbarItem}>
+              <Dropdown
+                label={strings.LabelFilterLabel}
+                selectedKey={selectedLabel}
+                options={labelOptions}
+                onChange={(_event, option) => setSelectedLabel(option ? String(option.key) : '')}
               />
             </div>
           )}

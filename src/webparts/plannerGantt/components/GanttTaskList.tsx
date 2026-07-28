@@ -2,16 +2,22 @@ import * as React from 'react';
 import { Task as GanttTask } from 'gantt-task-react';
 import * as strings from 'PlannerGanttWebPartStrings';
 import styles from './PlannerGantt.module.scss';
+import { PlannerService } from '../services/PlannerService';
+import { TaskInfoButton, ITaskInfoOptions } from './TaskInfoPopover';
 
 /** Extra data gantt-task-react's own Task type has no slot for. */
 export interface IGanttChartTask extends GanttTask {
   assignees?: string[];
+  labels?: string[];
+  hasDescription?: boolean;
+  conversationThreadId?: string;
 }
 
 export interface IColumnVisibility {
   showStartDate: boolean;
   showEndDate: boolean;
   showAssignee: boolean;
+  showLabel: boolean;
 }
 
 export interface IColumnWidths {
@@ -19,9 +25,10 @@ export interface IColumnWidths {
   start: number;
   end: number;
   assignee: number;
+  label: number;
 }
 
-export const DEFAULT_COLUMN_WIDTHS: IColumnWidths = { name: 220, start: 100, end: 100, assignee: 160 };
+export const DEFAULT_COLUMN_WIDTHS: IColumnWidths = { name: 220, start: 100, end: 100, assignee: 160, label: 140 };
 
 const MIN_COLUMN_WIDTH: number = 60;
 
@@ -135,12 +142,23 @@ export function createTaskListHeader(columns: IColumnVisibility): React.FC<ITask
             <ResizeHandle column="assignee" />
           </div>
         )}
+        {columns.showLabel && (
+          <div className={styles.ganttTableHeaderCell} style={{ width: widths.label }}>
+            {strings.ColumnLabelHeader}
+            <ResizeHandle column="label" />
+          </div>
+        )}
       </div>
     );
   };
 }
 
-export function createTaskListTable(columns: IColumnVisibility, planId: string): React.FC<ITaskListTableProps> {
+export function createTaskListTable(
+  columns: IColumnVisibility,
+  planId: string,
+  taskInfoOptions: ITaskInfoOptions,
+  plannerService: PlannerService
+): React.FC<ITaskListTableProps> {
   return function TaskListTable(props: ITaskListTableProps): React.ReactElement {
     const { widths } = React.useContext(ColumnWidthsContext);
 
@@ -150,7 +168,9 @@ export function createTaskListTable(columns: IColumnVisibility, planId: string):
           const chartTask: IGanttChartTask = task as IGanttChartTask;
           const isPhase: boolean = task.type === 'project';
           const isPhaseChild: boolean = !!task.project;
-          const assigneeText: string = (chartTask.assignees || []).join(', ');
+          const assignees: string[] = chartTask.assignees || [];
+          const assigneeText: string = assignees.join(', ');
+          const labelText: string = (chartTask.labels || []).join(', ');
           return (
             <div className={styles.ganttTableRow} style={{ height: props.rowHeight }} key={`${task.id}-row`}>
               <div className={styles.ganttTableCell} style={{ width: widths.name }} title={task.name}>
@@ -172,6 +192,22 @@ export function createTaskListTable(columns: IColumnVisibility, planId: string):
                     {task.name}
                   </span>
                 )}
+                {!isPhase && taskInfoOptions.show && (
+                  <TaskInfoButton
+                    data={{
+                      taskId: task.id,
+                      planId,
+                      start: task.start,
+                      end: task.end,
+                      progress: task.progress,
+                      assignees,
+                      hasDescription: !!chartTask.hasDescription,
+                      hasConversation: !!chartTask.conversationThreadId
+                    }}
+                    options={taskInfoOptions}
+                    plannerService={plannerService}
+                  />
+                )}
               </div>
               {columns.showStartDate && (
                 <div className={styles.ganttTableCell} style={{ width: widths.start }}>
@@ -186,6 +222,11 @@ export function createTaskListTable(columns: IColumnVisibility, planId: string):
               {columns.showAssignee && (
                 <div className={styles.ganttTableCell} style={{ width: widths.assignee }} title={assigneeText}>
                   {assigneeText || '–'}
+                </div>
+              )}
+              {columns.showLabel && (
+                <div className={styles.ganttTableCell} style={{ width: widths.label }} title={labelText}>
+                  {labelText || '–'}
                 </div>
               )}
             </div>

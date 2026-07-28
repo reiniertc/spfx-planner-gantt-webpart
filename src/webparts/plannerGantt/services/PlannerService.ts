@@ -4,7 +4,8 @@ import {
   IPlannerBucket,
   IPlannerTask,
   IGanttRow,
-  IBucketFilter
+  IBucketFilter,
+  IPlannerTaskComment
 } from '../models/IPlannerModels';
 
 const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
@@ -78,12 +79,13 @@ export class PlannerService {
   public async getGanttRows(planId: string, options: IGanttRowOptions): Promise<IGanttRow[]> {
     const client: MSGraphClientV3 = await this.graphClientFactory();
 
-    const [buckets, tasksResponse] = await Promise.all([
+    const [buckets, tasksResponse, categoryNameByKey] = await Promise.all([
       this.getBuckets(planId),
       client
         .api(`/planner/plans/${planId}/tasks`)
-        .select('id,title,bucketId,orderHint,percentComplete,priority,startDateTime,dueDateTime,createdDateTime,completedDateTime,assignments')
-        .get()
+        .select('id,title,bucketId,orderHint,percentComplete,priority,startDateTime,dueDateTime,createdDateTime,completedDateTime,assignments,appliedCategories,hasDescription,conversationThreadId')
+        .get(),
+      this.getCategoryNames(client, planId)
     ]);
 
     const bucketNameById: Record<string, string> = {};
@@ -94,13 +96,19 @@ export class PlannerService {
     const isBucketVisible = (bucketId: string): boolean =>
       !options.bucketFilter || options.bucketFilter[bucketId] !== false;
 
+    const toLabels = (appliedCategories?: Record<string, boolean>): string[] =>
+      Object.keys(appliedCategories || {})
+        .filter(key => appliedCategories && appliedCategories[key] && categoryNameByKey[key])
+        .map(key => categoryNameByKey[key]);
+
     const tasks: IPlannerTask[] = (tasksResponse.value || [])
       .filter((task: { completedDateTime?: string }) => options.includeCompleted || !task.completedDateTime)
       .filter((task: { bucketId: string }) => isBucketVisible(task.bucketId))
       .map((task: {
         id: string; title: string; bucketId: string; orderHint: string; percentComplete: number; priority: number;
         startDateTime?: string; dueDateTime?: string; createdDateTime: string; completedDateTime?: string;
-        assignments?: Record<string, unknown>;
+        assignments?: Record<string, unknown>; appliedCategories?: Record<string, boolean>;
+        hasDescription: boolean; conversationThreadId?: string;
       }) => ({
         id: task.id,
         title: task.title || '(Untitled task)',
@@ -112,7 +120,10 @@ export class PlannerService {
         dueDateTime: task.dueDateTime,
         createdDateTime: task.createdDateTime,
         completedDateTime: task.completedDateTime,
-        assigneeIds: Object.keys(task.assignments || {})
+        assigneeIds: Object.keys(task.assignments || {}),
+        labels: toLabels(task.appliedCategories),
+        hasDescription: !!task.hasDescription,
+        conversationThreadId: task.conversationThreadId
       }));
 
     const assigneeNameById: Record<string, string> = await this.resolveAssigneeNames(client, tasks);
@@ -163,6 +174,83 @@ export class PlannerService {
     }
 
     return rows;
+  }
+
+  /**
+   * The plan's up-to-25 category slots each have an optional display name
+   * (empty/null slots are unused labels), fetched once per plan load rather
+   * than per task.
+   */
+  private async getCategoryNames(client: MSGraphClientV3, planId: string): Promise<Record<string, string>> {
+    try {
+      const response = await client.api(`/planner/plans/${planId}/details`).select('categoryDescriptions').get();
+      const descriptions: Record<string, string | null> = response.categoryDescriptions || {};
+      const nameByKey: Record<string, string> = {};
+      Object.keys(descriptions).forEach(key => {
+        if (descriptions[key]) {
+          nameByKey[key] = descriptions[key] as string;
+        }
+      });
+      return nameByKey;
+    } catch {
+      return {};
+    }
+  }
+
+  /** Fetches a task's notes on demand - not part of the main task list call since most tasks are never opened. */
+  public async getTaskNotes(taskId: string): Promise<string> {
+    const client: MSGraphClientV3 = await this.graphClientFactory();
+    const response = await client.api(`/planner/tasks/${taskId}/details`).select('description').get();
+    return response.description || '';
+  }
+
+  /**
+   * A task's comments live in the Outlook conversation thread of the group
+   * that owns its plan, not on the task itself - resolved on demand, only
+   * when the info popup's comments section is both enabled and opened.
+   */
+  public async getTaskComments(planId: string, taskId: string): Promise<IPlannerTaskComment[]> {
+    try {
+      const client: MSGraphClientV3 = await this.graphClientFactory();
+
+      const task = await client.api(`/planner/tasks/${taskId}`).select('conversationThreadId').get();
+      const conversationThreadId: string | undefined = task.conversationThreadId;
+      if (!conversationThreadId) {
+        return [];
+      }
+
+      const plan = await client.api(`/planner/plans/${planId}`).select('owner,container').get();
+      const groupId: string | undefined = (plan.container && plan.container.containerId) || plan.owner;
+      if (!groupId) {
+        return [];
+      }
+
+      const postsResponse = await client
+        .api(`/groups/${groupId}/threads/${conversationThreadId}/posts`)
+        .select('from,body,createdDateTime')
+        .get();
+
+      const comments: IPlannerTaskComment[] = (postsResponse.value || []).map((post: {
+        from?: { emailAddress?: { name?: string } };
+        body?: { content?: string };
+        createdDateTime: string;
+      }) => ({
+        from: (post.from && post.from.emailAddress && post.from.emailAddress.name) || '',
+        createdDateTime: post.createdDateTime,
+        bodyText: this.stripHtml(post.body ? post.body.content || '' : '')
+      }));
+
+      comments.sort((a, b) => new Date(a.createdDateTime).getTime() - new Date(b.createdDateTime).getTime());
+      return comments;
+    } catch {
+      // Best-effort: missing permissions, a deleted thread, etc. shouldn't break the popup.
+      return [];
+    }
+  }
+
+  private stripHtml(html: string): string {
+    const parsed: Document = new DOMParser().parseFromString(html, 'text/html');
+    return parsed.body.textContent || '';
   }
 
   /**
@@ -229,7 +317,10 @@ export class PlannerService {
         type: 'milestone',
         project,
         bucketName: '',
-        assignees
+        assignees,
+        labels: task.labels,
+        hasDescription: task.hasDescription,
+        conversationThreadId: task.conversationThreadId
       };
     }
 
@@ -247,7 +338,10 @@ export class PlannerService {
       type: 'task',
       project,
       bucketName: '',
-      assignees
+      assignees,
+      labels: task.labels,
+      hasDescription: task.hasDescription,
+      conversationThreadId: task.conversationThreadId
     };
   }
 
@@ -263,7 +357,9 @@ export class PlannerService {
       progress: Math.round(taskRows.reduce((sum, row) => sum + row.progress, 0) / taskRows.length),
       type: 'project',
       bucketName,
-      assignees: []
+      assignees: [],
+      labels: [],
+      hasDescription: false
     };
   }
 }

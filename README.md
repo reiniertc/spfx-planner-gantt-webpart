@@ -67,10 +67,17 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   from the bars themselves (the task list on the left still always shows
   the full name).
 - **Optional columns** in the task list next to the chart: start date, due
-  date, and who a task is assigned to (assignee names are resolved from
-  Planner's assignee user ids via a single batched Graph call per load).
-  Every visible column (including Name) can be resized by dragging its
-  right edge.
+  date, who a task is assigned to, and its Planner label(s) (assignee names
+  are resolved from Planner's assignee user ids via a single batched Graph
+  call per load; labels come from the plan's own category names). Every
+  visible column (including Name) can be resized by dragging its right edge.
+- **Task info popup.** An "i" icon next to each task's name (toggleable)
+  opens a popup with more detail, and each section in it can be turned on
+  or off independently: the task's description (always shown first when
+  enabled), start date, due date, assigned to, status, and its Planner
+  comments/conversation (scrollable if there are many). The description and
+  comments are only fetched from Graph the first time a given task's popup
+  is opened, not for every task up front.
 - **Live toolbar above the chart** (viewer-side, not saved to the page).
   Each control can be turned on or off from the property pane's **Viewer
   toolbar** group (the toolbar disappears entirely if all four are off):
@@ -86,6 +93,9 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   - An **"Assigned to" filter** that hides tasks (and any phase left with
     nothing under it) that don't match the selected person, including an
     "Unassigned" option.
+  - A **label filter**, working the same way, for the plan's Planner
+    categories/labels, including a "No label" option. Both filters apply
+    together when both are in use.
   - A **Print / export to PDF** button. It opens the chart (title + Gantt,
     exactly as currently zoomed/filtered) in its own window with none of
     the page's other chrome, and triggers the browser's print dialog there

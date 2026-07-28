@@ -32,6 +32,10 @@ export interface IPlannerTask {
   createdDateTime: string;
   completedDateTime?: string;
   assigneeIds: string[];
+  /** Category/label names applied to the task, resolved via the plan's categoryDescriptions. */
+  labels: string[];
+  hasDescription: boolean;
+  conversationThreadId?: string;
 }
 
 /**
@@ -50,4 +54,15 @@ export interface IGanttRow {
   bucketName: string;
   /** Display names, resolved via Graph. Empty array when unassigned. */
   assignees: string[];
+  /** Category/label names applied to the task. Empty for bucket/phase rows. */
+  labels: string[];
+  hasDescription: boolean;
+  conversationThreadId?: string;
+}
+
+/** A single post in a task's Planner/Outlook conversation, ready to display. */
+export interface IPlannerTaskComment {
+  from: string;
+  createdDateTime: string;
+  bodyText: string;
 }

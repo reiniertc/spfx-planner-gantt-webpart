@@ -37,13 +37,22 @@ export interface IPlannerGanttWebPartProps {
   showStartDateColumn: boolean;
   showEndDateColumn: boolean;
   showAssigneeColumn: boolean;
+  showLabelColumn: boolean;
   defaultZoomLevel: number;
   showZoomControl: boolean;
   showPrintButton: boolean;
   showAssigneeFilter: boolean;
+  showLabelFilter: boolean;
   showCompletedFilterControl: boolean;
   scrollToToday: boolean;
   scrollToTodayMarginUnits: number;
+  showTaskInfoIcon: boolean;
+  showInfoDescription: boolean;
+  showInfoStartDate: boolean;
+  showInfoEndDate: boolean;
+  showInfoAssignee: boolean;
+  showInfoStatus: boolean;
+  showInfoComments: boolean;
   bucketFilter?: IBucketFilter;
 }
 
@@ -99,15 +108,24 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
         showStartDateColumn: this.properties.showStartDateColumn !== false,
         showEndDateColumn: this.properties.showEndDateColumn !== false,
         showAssigneeColumn: this.properties.showAssigneeColumn !== false,
+        showLabelColumn: this.properties.showLabelColumn !== false,
         defaultZoomLevel: this.properties.defaultZoomLevel || DEFAULT_ZOOM_LEVEL,
         showZoomControl: this.properties.showZoomControl !== false,
         showPrintButton: this.properties.showPrintButton !== false,
         showAssigneeFilter: this.properties.showAssigneeFilter !== false,
+        showLabelFilter: this.properties.showLabelFilter !== false,
         showCompletedFilterControl: this.properties.showCompletedFilterControl !== false,
         scrollToToday: this.properties.scrollToToday !== false,
         scrollToTodayMarginUnits: this.properties.scrollToTodayMarginUnits !== undefined
           ? this.properties.scrollToTodayMarginUnits
           : DEFAULT_SCROLL_MARGIN_UNITS,
+        showTaskInfoIcon: this.properties.showTaskInfoIcon !== false,
+        showInfoDescription: this.properties.showInfoDescription !== false,
+        showInfoStartDate: this.properties.showInfoStartDate !== false,
+        showInfoEndDate: this.properties.showInfoEndDate !== false,
+        showInfoAssignee: this.properties.showInfoAssignee !== false,
+        showInfoStatus: this.properties.showInfoStatus !== false,
+        showInfoComments: this.properties.showInfoComments !== false,
         // Shallow-copied so a mutated nested property still produces a new
         // reference for React to notice between property pane changes.
         bucketFilter: this.properties.bucketFilter ? { ...this.properties.bucketFilter } : undefined,
@@ -364,6 +382,10 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showAssigneeColumn', {
             label: strings.ShowAssigneeColumnFieldLabel,
             checked: this.properties.showAssigneeColumn !== false
+          }),
+          PropertyPaneToggle('showLabelColumn', {
+            label: strings.ShowLabelColumnFieldLabel,
+            checked: this.properties.showLabelColumn !== false
           })
         ]
       },
@@ -385,6 +407,10 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
             label: strings.ShowAssigneeFilterFieldLabel,
             checked: this.properties.showAssigneeFilter !== false
           }),
+          PropertyPaneToggle('showLabelFilter', {
+            label: strings.ShowLabelFilterFieldLabel,
+            checked: this.properties.showLabelFilter !== false
+          }),
           PropertyPaneToggle('showPrintButton', {
             label: strings.ShowPrintButtonFieldLabel,
             checked: this.properties.showPrintButton !== false
@@ -392,6 +418,45 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
           PropertyPaneToggle('showCompletedFilterControl', {
             label: strings.ShowCompletedFilterControlFieldLabel,
             checked: this.properties.showCompletedFilterControl !== false
+          })
+        ]
+      },
+      {
+        groupName: strings.TaskInfoGroupName,
+        groupFields: [
+          PropertyPaneToggle('showTaskInfoIcon', {
+            label: strings.ShowTaskInfoIconFieldLabel,
+            checked: this.properties.showTaskInfoIcon !== false
+          }),
+          PropertyPaneToggle('showInfoDescription', {
+            label: strings.ShowInfoDescriptionFieldLabel,
+            checked: this.properties.showInfoDescription !== false,
+            disabled: this.properties.showTaskInfoIcon === false
+          }),
+          PropertyPaneToggle('showInfoStartDate', {
+            label: strings.ShowInfoStartDateFieldLabel,
+            checked: this.properties.showInfoStartDate !== false,
+            disabled: this.properties.showTaskInfoIcon === false
+          }),
+          PropertyPaneToggle('showInfoEndDate', {
+            label: strings.ShowInfoEndDateFieldLabel,
+            checked: this.properties.showInfoEndDate !== false,
+            disabled: this.properties.showTaskInfoIcon === false
+          }),
+          PropertyPaneToggle('showInfoAssignee', {
+            label: strings.ShowInfoAssigneeFieldLabel,
+            checked: this.properties.showInfoAssignee !== false,
+            disabled: this.properties.showTaskInfoIcon === false
+          }),
+          PropertyPaneToggle('showInfoStatus', {
+            label: strings.ShowInfoStatusFieldLabel,
+            checked: this.properties.showInfoStatus !== false,
+            disabled: this.properties.showTaskInfoIcon === false
+          }),
+          PropertyPaneToggle('showInfoComments', {
+            label: strings.ShowInfoCommentsFieldLabel,
+            checked: this.properties.showInfoComments !== false,
+            disabled: this.properties.showTaskInfoIcon === false
           })
         ]
       }
