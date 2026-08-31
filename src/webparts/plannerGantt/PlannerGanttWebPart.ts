@@ -221,7 +221,9 @@ export default class PlannerGanttWebPart extends BaseClientSideWebPart<IPlannerG
       .then((plans: IPlannerPlanOption[]) => {
         this._planOptions = plans.map(plan => ({
           key: plan.planId,
-          text: `${plan.planTitle} (${plan.groupName})`
+          text: plan.channelName
+            ? `${plan.planTitle} (${plan.groupName} – ${plan.channelName})`
+            : `${plan.planTitle} (${plan.groupName})`
         }));
         this._plansLoadStatus = 'loaded';
         this.context.propertyPane.refresh();

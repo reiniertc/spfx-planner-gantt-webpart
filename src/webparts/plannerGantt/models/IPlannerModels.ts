@@ -9,6 +9,8 @@ export interface IPlannerPlanOption {
   planTitle: string;
   groupId: string;
   groupName: string;
+  /** Set when the plan lives in a private/shared Teams channel rather than the team's own plan list. */
+  channelName?: string;
 }
 
 export interface IPlannerBucket {

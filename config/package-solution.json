@@ -45,6 +45,10 @@
       {
         "resource": "Microsoft Graph",
         "scope": "User.ReadBasic.All"
+      },
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Channel.ReadBasic.All"
       }
     ]
   },

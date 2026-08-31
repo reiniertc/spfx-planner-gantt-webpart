@@ -22,7 +22,9 @@ visitor then sees that plan's tasks, grouped by bucket, as a Gantt chart
   Microsoft Graph: it walks the Microsoft 365 groups the signed-in user
   belongs to and lists every Planner plan owned by those groups (Graph has
   no single "list all my plans" endpoint, so this is the standard way to
-  discover them).
+  discover them). Plans that live in a private or shared Teams channel
+  (their own container, not the team's own plan list) are discovered too,
+  shown with their channel name to tell them apart from the team's plans.
 - **Title (toggle).** The heading above the chart automatically mirrors the
   SharePoint page's own title (it's what the print/export window's title
   uses too, and falls back to the plan's name if the page has none yet),
@@ -120,6 +122,7 @@ following Graph **delegated** permissions must be approved once per tenant:
 | `Group.Read.All`   | Enumerate the Microsoft 365 groups the user belongs to, to find their Planner plans |
 | `Tasks.Read`       | Read plan buckets and tasks from Planner                     |
 | `User.ReadBasic.All` | Resolve assignee user ids to display names for the "Assigned to" column |
+| `Channel.ReadBasic.All` | List a team's private/shared channels, to also find plans that live in one of those |
 
 These are declared in [`config/package-solution.json`](./config/package-solution.json)
 under `webApiPermissionRequests`. After deploying the `.sppkg`:
@@ -196,8 +199,12 @@ gulp serve
 - Planner tasks have no notion of dependencies between tasks, so the chart
   never draws dependency arrows.
 - A plan with many buckets/tasks means many Graph round trips on first load
-  (one per group to discover plans); this is a Graph API constraint, not a
-  caching layer this web part currently implements.
+  (one per group to discover plans, plus one per private/shared channel in
+  each group); this is a Graph API constraint, not a caching layer this web
+  part currently implements.
+- **Private/shared channel plan discovery uses a beta Graph endpoint.**
+  `/teams/{id}/channels/{id}/planner/plans` isn't available in v1.0 yet -
+  same caveat as the task info popup's comments (see above).
 - **Zoom only goes up to Month.** [`gantt-task-react`](https://github.com/MaTeMaTuK/gantt-task-react)
   (the charting library used here) doesn't have a Year view mode — its
   coarsest zoom level is Month. A React-17-compatible version with Year

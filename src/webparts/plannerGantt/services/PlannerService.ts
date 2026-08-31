@@ -32,6 +32,9 @@ export class PlannerService {
   /**
    * Graph has no "list every plan I can see" endpoint, so plans are
    * discovered by walking the Microsoft 365 groups the user belongs to.
+   * Since Planner plans in private/shared Teams channels live in their own
+   * container (not the team's group-level plan list), each group's private
+   * and shared channels are also checked for their own channel-scoped plans.
    */
   public async getAvailablePlans(): Promise<IPlannerPlanOption[]> {
     const client: MSGraphClientV3 = await this.graphClientFactory();
@@ -47,25 +50,76 @@ export class PlannerService {
 
     const plansByGroup: IPlannerPlanOption[][] = await Promise.all(
       unifiedGroups.map(async group => {
-        try {
-          const plansResponse = await client.api(`/groups/${group.id}/planner/plans`).select('id,title').get();
-          return (plansResponse.value || []).map((plan: { id: string; title: string }) => ({
-            planId: plan.id,
-            planTitle: plan.title,
-            groupId: group.id,
-            groupName: group.displayName
-          }));
-        } catch {
-          // The user is a group member but has no Planner access (or the
-          // group simply has no plans) - skip it rather than fail the whole list.
-          return [];
-        }
+        const [groupPlans, channelPlans] = await Promise.all([
+          this.getGroupPlans(client, group),
+          this.getChannelPlans(client, group)
+        ]);
+        return groupPlans.concat(channelPlans);
       })
     );
 
-    return plansByGroup
-      .reduce((all, plans) => all.concat(plans), [])
-      .sort((a, b) => a.planTitle.localeCompare(b.planTitle));
+    const allPlans: IPlannerPlanOption[] = plansByGroup.reduce((all, plans) => all.concat(plans), []);
+    const allPlanIds: string[] = allPlans.map(plan => plan.planId);
+    const distinctPlans: IPlannerPlanOption[] = allPlans.filter((plan, index) => allPlanIds.indexOf(plan.planId) === index);
+
+    return distinctPlans.sort((a, b) => a.planTitle.localeCompare(b.planTitle));
+  }
+
+  private async getGroupPlans(client: MSGraphClientV3, group: { id: string; displayName: string }): Promise<IPlannerPlanOption[]> {
+    try {
+      const plansResponse = await client.api(`/groups/${group.id}/planner/plans`).select('id,title').get();
+      return (plansResponse.value || []).map((plan: { id: string; title: string }) => ({
+        planId: plan.id,
+        planTitle: plan.title,
+        groupId: group.id,
+        groupName: group.displayName
+      }));
+    } catch {
+      // The user is a group member but has no Planner access (or the
+      // group simply has no plans) - skip it rather than fail the whole list.
+      return [];
+    }
+  }
+
+  /**
+   * Private and shared channels each get their own plan container, separate
+   * from their team's group-level one - not a Teams member, or a group with
+   * no Teams provisioned on it, means this 404s and is skipped the same way.
+   */
+  private async getChannelPlans(client: MSGraphClientV3, group: { id: string; displayName: string }): Promise<IPlannerPlanOption[]> {
+    try {
+      const channelsResponse = await client
+        .api(`/teams/${group.id}/channels`)
+        .filter(`membershipType eq 'private' or membershipType eq 'shared'`)
+        .select('id,displayName')
+        .get();
+      const channels: Array<{ id: string; displayName: string }> = channelsResponse.value || [];
+
+      const plansByChannel: IPlannerPlanOption[][] = await Promise.all(
+        channels.map(async channel => {
+          try {
+            const plansResponse = await client
+              .api(`/teams/${group.id}/channels/${channel.id}/planner/plans`)
+              .version('beta')
+              .select('id,title')
+              .get();
+            return (plansResponse.value || []).map((plan: { id: string; title: string }) => ({
+              planId: plan.id,
+              planTitle: plan.title,
+              groupId: group.id,
+              groupName: group.displayName,
+              channelName: channel.displayName
+            }));
+          } catch {
+            return [];
+          }
+        })
+      );
+
+      return plansByChannel.reduce((all, plans) => all.concat(plans), []);
+    } catch {
+      return [];
+    }
   }
 
   public async getBuckets(planId: string): Promise<IPlannerBucket[]> {
