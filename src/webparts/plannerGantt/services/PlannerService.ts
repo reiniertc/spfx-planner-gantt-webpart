@@ -50,9 +50,12 @@ export class PlannerService {
 
     const plansByGroup: IPlannerPlanOption[][] = await Promise.all(
       unifiedGroups.map(async group => {
+        // Channel discovery is the newer, less-proven half of this call - a
+        // single group's channel plans hanging or misbehaving must never be
+        // able to hold up (or fail) the group's own, already-working plans.
         const [groupPlans, channelPlans] = await Promise.all([
           this.getGroupPlans(client, group),
-          this.getChannelPlans(client, group)
+          this.withTimeout(this.getChannelPlans(client, group), [], 15000)
         ]);
         return groupPlans.concat(channelPlans);
       })
@@ -63,6 +66,22 @@ export class PlannerService {
     const distinctPlans: IPlannerPlanOption[] = allPlans.filter((plan, index) => allPlanIds.indexOf(plan.planId) === index);
 
     return distinctPlans.sort((a, b) => a.planTitle.localeCompare(b.planTitle));
+  }
+
+  /** Bounds how long a single promise can hold up the rest of the plan list, falling back instead of hanging forever. */
+  private withTimeout<T>(promise: Promise<T>, fallback: T, ms: number): Promise<T> {
+    return new Promise<T>(resolve => {
+      const timer: number = window.setTimeout(() => resolve(fallback), ms);
+      promise
+        .then(value => {
+          window.clearTimeout(timer);
+          resolve(value);
+        })
+        .catch(() => {
+          window.clearTimeout(timer);
+          resolve(fallback);
+        });
+    });
   }
 
   private async getGroupPlans(client: MSGraphClientV3, group: { id: string; displayName: string }): Promise<IPlannerPlanOption[]> {
@@ -88,12 +107,15 @@ export class PlannerService {
    */
   private async getChannelPlans(client: MSGraphClientV3, group: { id: string; displayName: string }): Promise<IPlannerPlanOption[]> {
     try {
+      // The $filter form of this call (membershipType eq 'private' or ... eq
+      // 'shared') 404s outright rather than filtering, at least on some
+      // tenants - fetch all channels and filter client-side instead.
       const channelsResponse = await client
         .api(`/teams/${group.id}/channels`)
-        .filter(`membershipType eq 'private' or membershipType eq 'shared'`)
-        .select('id,displayName')
+        .select('id,displayName,membershipType')
         .get();
-      const channels: Array<{ id: string; displayName: string }> = channelsResponse.value || [];
+      const channels: Array<{ id: string; displayName: string; membershipType?: string }> = (channelsResponse.value || [])
+        .filter((channel: { membershipType?: string }) => channel.membershipType === 'private' || channel.membershipType === 'shared');
 
       const plansByChannel: IPlannerPlanOption[][] = await Promise.all(
         channels.map(async channel => {

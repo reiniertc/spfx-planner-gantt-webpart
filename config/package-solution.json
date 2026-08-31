@@ -3,7 +3,7 @@
   "solution": {
     "name": "spfx-planner-gantt-webpart-client-side-solution",
     "id": "7cbf1a16-92fe-46db-8a8f-fe8315c0133e",
-    "version": "1.0.0.0",
+    "version": "1.0.1.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
